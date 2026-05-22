@@ -7,26 +7,7 @@ export default function Viewer3D({ truckData }) {
   const [threeLoaded, setThreeLoaded] = useState(false);
 
   useEffect(() => {
-    // Dynamically import Three.js
-    import('three').then((THREE) => {
-      setThreeLoaded(true);
-      initScene(THREE);
-    });
-
-    return () => {
-      if (sceneRef.current) {
-        sceneRef.current.dispose();
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (threeLoaded && sceneRef.current) {
-      sceneRef.current.updateTruck(truckData);
-    }
-  }, [truckData, threeLoaded]);
-
-  function initScene(THREE) {
+    function initScene(THREE) {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -191,6 +172,24 @@ export default function Viewer3D({ truckData }) {
       },
     };
   }
+
+    import('three').then((THREE) => {
+      setThreeLoaded(true);
+      initScene(THREE);
+    });
+
+    return () => {
+      if (sceneRef.current) {
+        sceneRef.current.dispose();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (threeLoaded && sceneRef.current) {
+      sceneRef.current.updateTruck(truckData);
+    }
+  }, [truckData, threeLoaded]);
 
   return (
     <div className={styles.viewerWrapper}>
