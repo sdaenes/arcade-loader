@@ -6,6 +6,39 @@ const { optimizeLoading } = require('./optimizer');
 
 const anthropic = new Anthropic();
 
+async function searchWikipedia(name) {
+  for (const lang of ['fr', 'en']) {
+    try {
+      const base = `https://${lang}.wikipedia.org/w/api.php`;
+      const query = `${name} arcade borne cabinet`;
+      const searchRes = await fetch(
+        `${base}?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&srlimit=2`,
+        { headers: { 'User-Agent': 'ArcadeLoader/1.0' }, signal: AbortSignal.timeout(6000) }
+      );
+      const searchData = await searchRes.json();
+      const hits = searchData?.query?.search || [];
+      if (hits.length === 0) continue;
+
+      const title = hits[0].title;
+      const extractRes = await fetch(
+        `${base}?action=query&prop=extracts&titles=${encodeURIComponent(title)}&format=json&exlimit=1&exchars=6000`,
+        { headers: { 'User-Agent': 'ArcadeLoader/1.0' }, signal: AbortSignal.timeout(6000) }
+      );
+      const extractData = await extractRes.json();
+      const pages = extractData?.query?.pages || {};
+      const page = Object.values(pages)[0];
+      if (!page?.extract || page.extract.length < 100) continue;
+
+      const text = page.extract
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
+        .replace(/\s+/g, ' ').trim();
+      return { lang, title, text };
+    } catch (_) { /* try next language */ }
+  }
+  return null;
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -46,21 +79,30 @@ app.post('/api/search-cabinet', async (req, res) => {
     return res.status(503).json({ error: 'ANTHROPIC_API_KEY non configurée sur le serveur.' });
   }
   try {
-    const promptSimple = `Tu es un expert en bornes d'arcade. Pour la borne "${name.trim()}", fournis ses dimensions physiques typiques et son poids.
-Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) au format exact suivant :
-{"width": <largeur en mètres>, "height": <hauteur en mètres>, "depth": <profondeur en mètres>, "weight": <poids en kg>, "notes": "<courte description en français>"}
-Si tu ne connais pas cette borne précisément, fournis des estimations typiques pour une borne de ce type et indique-le dans notes.`;
+    const wikiData = await searchWikipedia(name.trim());
+    const wikiContext = wikiData
+      ? `Voici le contenu Wikipedia pour "${wikiData.title}" (${wikiData.lang === 'fr' ? 'Wikipedia FR' : 'Wikipedia EN'}) :\n\n${wikiData.text}\n\n`
+      : '';
+    const wikiNote = wikiData ? `Source : ${wikiData.lang === 'fr' ? 'Wikipedia FR' : 'Wikipedia EN'} (${wikiData.title})` : 'Source : connaissances de Claude (aucune page Wikipedia trouvée)';
 
-    const promptDeep = `Tu es un expert en bornes d'arcade. Effectue une recherche approfondie sur la borne "${name.trim()}".
+    const jsonFormat = '{"width": <largeur en mètres>, "height": <hauteur en mètres>, "depth": <profondeur en mètres>, "weight": <poids en kg>, "notes": "<description>"}';
+
+    const promptSimple = `${wikiContext}Extrais les dimensions physiques extérieures et le poids de la borne d'arcade "${name.trim()}".
+Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
+${jsonFormat}
+Dans "notes", indique : ${wikiNote}. Si les données ne sont pas disponibles, estime et précise-le.`;
+
+    const promptDeep = `${wikiContext}Analyse approfondie de la borne d'arcade "${name.trim()}".
+${wikiData ? 'Le texte Wikipedia ci-dessus contient les données de référence — utilise-les en priorité.' : 'Aucune source Wikipedia trouvée — utilise tes connaissances.'}
 Raisonne étape par étape :
-1. Identifie le fabricant exact et le nom complet du modèle
-2. Note les variantes existantes (version originale, mini, cocktail, deluxe, etc.) et précise laquelle tu décris
-3. Donne les dimensions extérieures précises (largeur, hauteur, profondeur) en mètres avec au moins 2 décimales
-4. Estime le poids en kg (avec accessoires standards : joystick, boutons, écran)
-5. Indique ton niveau de confiance : ÉLEVÉ (specs officielles connues), MOYEN (très proche d'une source connue), FAIBLE (estimation)
+1. Identifie fabricant, modèle exact et variante (originale, mini, cocktail, deluxe…)
+2. Extrais les dimensions extérieures précises (largeur, hauteur, profondeur) en mètres
+3. Note le poids avec accessoires standards
+4. Indique niveau de confiance : ÉLEVÉ (source directe), MOYEN (source proche), FAIBLE (estimation)
 
-Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) au format exact :
-{"width": <m>, "height": <m>, "depth": <m>, "weight": <kg>, "notes": "<fabricant, modèle exact, variante décrite, niveau de confiance et source si connue>"}`;
+Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
+${jsonFormat}
+Dans "notes" : fabricant, variante, niveau de confiance, ${wikiNote}.`;
 
     const requestParams = {
       model: 'claude-opus-4-7',

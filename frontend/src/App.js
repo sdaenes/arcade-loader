@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import styles from './App.module.css';
 import CabinetPanel from './components/CabinetPanel';
 import TruckPanel from './components/TruckPanel';
@@ -9,6 +9,15 @@ import ContainerManager from './components/ContainerManager';
 import Header from './components/Header';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
+
+const TAB_DEFS = [
+  { id: 'setup',      icon: '⚙',  label: 'Configuration' },
+  { id: 'results',    icon: '📦', label: 'Résultats' },
+  { id: 'manual',     icon: '✏',  label: 'Placement manuel' },
+  { id: 'directory',  icon: '📋', label: 'Annuaire' },
+  { id: 'containers', icon: '🚛', label: 'Contenants' },
+];
+const DEFAULT_TAB_ORDER = TAB_DEFS.map(t => t.id);
 
 const DEFAULT_CABINETS = [
   { id: 'cab1', name: 'Borne Standard', width: 0.65, height: 1.75, depth: 0.75, quantity: 1, canTilt: false, color: '#00f5ff' },
@@ -34,10 +43,12 @@ export default function App() {
   const [manualPlacements, setManualPlacements] = useState(() => loadSaved('al_manual', {}));
   const [directory, setDirectory] = useState(() => loadSaved('al_directory', []));
   const [containerTemplates, setContainerTemplates] = useState(() => loadSaved('al_containers', []));
+  const [tabOrder, setTabOrder] = useState(() => loadSaved('al_taborder', DEFAULT_TAB_ORDER));
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('setup'); // 'setup' | 'results' | 'manual' | 'directory' | 'containers'
+  const [activeTab, setActiveTab] = useState('setup');
+  const tabDragIdx = useRef(null);
 
   useEffect(() => { localStorage.setItem('al_cabinets', JSON.stringify(cabinets)); }, [cabinets]);
   useEffect(() => { localStorage.setItem('al_trucks', JSON.stringify(trucks)); }, [trucks]);
@@ -45,6 +56,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('al_manual', JSON.stringify(manualPlacements)); }, [manualPlacements]);
   useEffect(() => { localStorage.setItem('al_directory', JSON.stringify(directory)); }, [directory]);
   useEffect(() => { localStorage.setItem('al_containers', JSON.stringify(containerTemplates)); }, [containerTemplates]);
+  useEffect(() => { localStorage.setItem('al_taborder', JSON.stringify(tabOrder)); }, [tabOrder]);
 
   const handleReset = () => {
     if (window.confirm('Réinitialiser toutes les valeurs aux valeurs par défaut ?')) {
@@ -102,39 +114,37 @@ export default function App() {
       <Header />
 
       <div className={styles.tabs}>
-        <button
-          className={`${styles.tab} ${activeTab === 'setup' ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab('setup')}
-        >
-          <span className={styles.tabIcon}>⚙</span> Configuration
-        </button>
-        <button
-          className={`${styles.tab} ${activeTab === 'results' ? styles.tabActive : ''} ${!results ? styles.tabDisabled : ''}`}
-          onClick={() => results && setActiveTab('results')}
-        >
-          <span className={styles.tabIcon}>📦</span> Résultats
-          {results && <span className={styles.tabBadge}>{results.placedCabinets}/{results.totalCabinets}</span>}
-        </button>
-        <button
-          className={`${styles.tab} ${activeTab === 'manual' ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab('manual')}
-        >
-          <span className={styles.tabIcon}>✏</span> Placement manuel
-        </button>
-        <button
-          className={`${styles.tab} ${activeTab === 'directory' ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab('directory')}
-        >
-          <span className={styles.tabIcon}>📋</span> Annuaire
-          {directory.length > 0 && <span className={styles.tabBadge}>{directory.length}</span>}
-        </button>
-        <button
-          className={`${styles.tab} ${activeTab === 'containers' ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab('containers')}
-        >
-          <span className={styles.tabIcon}>🚛</span> Contenants
-          {containerTemplates.length > 0 && <span className={styles.tabBadge}>{containerTemplates.length}</span>}
-        </button>
+        {tabOrder.map((tabId, i) => {
+          const def = TAB_DEFS.find(t => t.id === tabId);
+          if (!def) return null;
+          const isDisabled = tabId === 'results' && !results;
+          let badge = null;
+          if (tabId === 'results' && results) badge = `${results.placedCabinets}/${results.totalCabinets}`;
+          if (tabId === 'directory' && directory.length > 0) badge = directory.length;
+          if (tabId === 'containers' && containerTemplates.length > 0) badge = containerTemplates.length;
+          return (
+            <button
+              key={tabId}
+              className={`${styles.tab} ${activeTab === tabId ? styles.tabActive : ''} ${isDisabled ? styles.tabDisabled : ''}`}
+              onClick={() => !isDisabled && setActiveTab(tabId)}
+              draggable
+              onDragStart={() => { tabDragIdx.current = i; }}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                const from = tabDragIdx.current;
+                if (from === null || from === i) return;
+                const next = [...tabOrder];
+                const [item] = next.splice(from, 1);
+                next.splice(i, 0, item);
+                setTabOrder(next);
+              }}
+            >
+              <span className={styles.tabIcon}>{def.icon}</span>
+              {def.label}
+              {badge !== null && <span className={styles.tabBadge}>{badge}</span>}
+            </button>
+          );
+        })}
         <button className={styles.tabReset} onClick={handleReset} title="Réinitialiser aux valeurs par défaut">
           ↺ Reset Configuration
         </button>

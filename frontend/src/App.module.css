@@ -28,7 +28,10 @@
   gap: 0.5rem;
   transition: all 0.2s;
   font-weight: 600;
+  cursor: grab;
 }
+
+.tab:active { cursor: grabbing; }
 
 .tab:hover {
   color: var(--text);
