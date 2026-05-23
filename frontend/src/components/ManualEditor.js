@@ -45,7 +45,7 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
 
   const setPlacements = useCallback((next) => {
     setAllPlacements(prev => ({ ...prev, [truck.id]: typeof next === 'function' ? next(prev[truck.id] || []) : next }));
-  }, [truck]);
+  }, [truck, setAllPlacements]);
 
   // ── Drawing ──────────────────────────────────────────────────────────────
   const draw = useCallback(() => {
