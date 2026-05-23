@@ -11,15 +11,11 @@ import Header from './components/Header';
 const API_BASE = process.env.REACT_APP_API_URL || '';
 
 const DEFAULT_CABINETS = [
-  { id: 'cab1', name: 'Borne Standard', width: 0.65, height: 1.75, depth: 0.75, quantity: 10, canTilt: false, color: '#00f5ff' },
-  { id: 'cab2', name: 'Borne Cocktail', width: 0.70, height: 0.80, depth: 0.70, quantity: 5, canTilt: true, color: '#ff00aa' },
-  { id: 'cab3', name: 'Borne Deluxe', width: 0.80, height: 1.85, depth: 0.90, quantity: 6, canTilt: false, color: '#aaff00' },
+  { id: 'cab1', name: 'Borne Standard', width: 0.65, height: 1.75, depth: 0.75, quantity: 1, canTilt: false, color: '#00f5ff' },
 ];
 
 const DEFAULT_TRUCKS = [
   { id: 'truck1', name: 'Camion A', width: 2.4, height: 2.5, depth: 7.0 },
-  { id: 'truck2', name: 'Camion B', width: 2.4, height: 2.5, depth: 7.0 },
-  { id: 'truck3', name: 'Camion C', width: 2.4, height: 2.5, depth: 7.0 },
 ];
 
 function loadSaved(key, fallback) {
@@ -140,7 +136,7 @@ export default function App() {
           {containerTemplates.length > 0 && <span className={styles.tabBadge}>{containerTemplates.length}</span>}
         </button>
         <button className={styles.tabReset} onClick={handleReset} title="Réinitialiser aux valeurs par défaut">
-          ↺ Reset
+          ↺ Reset Configuration
         </button>
       </div>
 

@@ -46,19 +46,24 @@ function TruckRow({ truck, onChange, onDelete, presets }) {
             <select
               defaultValue=""
               onChange={(e) => {
-                const all = [...presets, ...BUILTIN_PRESETS];
-                const p = all.find(pr => pr.label === e.target.value);
+                const val = e.target.value;
+                const custom = presets.find(p => (p.name || p.label) === val);
+                const builtin = BUILTIN_PRESETS.find(p => p.label === val);
+                const p = custom || builtin;
                 if (p) onChange({ ...truck, width: p.width, height: p.height, depth: p.depth });
               }}
             >
               <option value="">— Choisir un modèle —</option>
               {presets.length > 0 && (
                 <optgroup label="Mes contenants">
-                  {presets.map(p => (
-                    <option key={p.id || p.label} value={p.label}>
-                      {p.label} ({p.width}×{p.height}×{p.depth} m)
-                    </option>
-                  ))}
+                  {presets.map(p => {
+                    const label = p.name || p.label;
+                    return (
+                      <option key={p.id || label} value={label}>
+                        {label} ({p.width}×{p.height}×{p.depth} m)
+                      </option>
+                    );
+                  })}
                 </optgroup>
               )}
               <optgroup label="Modèles standards">

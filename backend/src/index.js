@@ -1,10 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
 const { optimizeLoading } = require('./optimizer');
 
-const openai = new OpenAI();
+const anthropic = new Anthropic();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -42,25 +42,23 @@ app.post('/api/search-cabinet', async (req, res) => {
   if (!name || typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ error: 'Nom de borne requis.' });
   }
-  if (!process.env.OPENAI_API_KEY) {
-    return res.status(503).json({ error: 'OPENAI_API_KEY non configurée sur le serveur.' });
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({ error: 'ANTHROPIC_API_KEY non configurée sur le serveur.' });
   }
   try {
-    const msg = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 512,
+    const msg = await anthropic.messages.create({
+      model: 'claude-opus-4-7',
+      max_tokens: 1024,
       messages: [{
-        role: 'system',
-        content: "Tu es un expert en bornes d'arcade. Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans texte autour).",
-      }, {
         role: 'user',
-        content: `Pour la borne d'arcade "${name.trim()}", fournis ses dimensions physiques typiques et son poids au format JSON exact :
+        content: `Tu es un expert en bornes d'arcade. Pour la borne "${name.trim()}", fournis ses dimensions physiques typiques et son poids.
+Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) au format exact suivant :
 {"width": <largeur en mètres>, "height": <hauteur en mètres>, "depth": <profondeur en mètres>, "weight": <poids en kg>, "notes": "<courte description en français>"}
-Si tu ne connais pas cette borne précisément, fournis des estimations typiques et indique-le dans notes.`,
+Si tu ne connais pas cette borne précisément, fournis des estimations typiques pour une borne de ce type et indique-le dans notes.`,
       }],
     });
 
-    const raw = msg.choices[0].message.content.trim();
+    const raw = msg.content[0].text.trim();
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('Format JSON invalide dans la réponse.');
     const data = JSON.parse(jsonMatch[0]);
