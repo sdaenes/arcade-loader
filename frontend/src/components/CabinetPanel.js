@@ -145,6 +145,12 @@ export default function CabinetPanel({ cabinets, onChange }) {
     URL.revokeObjectURL(url);
   };
 
+  const parseColor = (raw, fallbackIdx) => {
+    const c = String(raw || '').replace(/[\s"']/g, '');
+    const hex = c.startsWith('#') ? c : c ? '#' + c : '';
+    return /^#[0-9a-fA-F]{6}$/i.test(hex) ? hex : COLORS[fallbackIdx % COLORS.length];
+  };
+
   const handleImport = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -154,18 +160,20 @@ export default function CabinetPanel({ cabinets, onChange }) {
 
     if (ext === 'csv') {
       const text = await file.text();
-      const rows = text.trim().split('\n').slice(1); // skip header
+      const rows = text.trim().split(/\r?\n/).slice(1); // skip header, handle CRLF
       const imported = rows.map((row, i) => {
-        const [nom, largeur, hauteur, profondeur, quantite, inclinable, couleur] = row.split(/[,;]/);
+        // strip surrounding quotes from each field (Excel CSV)
+        const fields = row.split(/[,;]/).map(f => f.trim().replace(/^"|"$/g, ''));
+        const [nom, largeur, hauteur, profondeur, quantite, inclinable, couleur] = fields;
         return {
           id: genId(),
-          name: nom?.trim() || `Borne ${i + 1}`,
+          name: nom || `Borne ${i + 1}`,
           width: parseFloat(largeur) || 0.65,
           height: parseFloat(hauteur) || 1.75,
           depth: parseFloat(profondeur) || 0.75,
           quantity: parseInt(quantite, 10) || 1,
-          canTilt: inclinable?.trim().toLowerCase() === 'oui',
-          color: couleur?.trim() || COLORS[i % COLORS.length],
+          canTilt: (inclinable || '').toLowerCase() === 'oui',
+          color: parseColor(couleur, i),
         };
       }).filter(c => c.name);
       if (imported.length > 0) onChange(imported);
@@ -176,7 +184,7 @@ export default function CabinetPanel({ cabinets, onChange }) {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = utils.sheet_to_json(ws, { defval: '' });
       const imported = rows.map((row, i) => {
-        const nom = row['nom'] || row['Nom'] || row['name'] || '';
+        const nom = String(row['nom'] || row['Nom'] || row['name'] || '').trim();
         return {
           id: genId(),
           name: nom || `Borne ${i + 1}`,
@@ -185,7 +193,7 @@ export default function CabinetPanel({ cabinets, onChange }) {
           depth: parseFloat(row['profondeur'] || row['Profondeur'] || row['depth']) || 0.75,
           quantity: parseInt(row['quantite'] || row['Quantité'] || row['quantity'], 10) || 1,
           canTilt: String(row['inclinable'] || row['canTilt'] || '').toLowerCase() === 'oui',
-          color: row['couleur'] || row['color'] || COLORS[i % COLORS.length],
+          color: parseColor(row['couleur'] || row['Couleur'] || row['color'], i),
         };
       }).filter(c => c.name);
       if (imported.length > 0) onChange(imported);

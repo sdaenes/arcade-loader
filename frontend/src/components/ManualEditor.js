@@ -19,14 +19,14 @@ function fromCanvas(cx, cy, scale) {
   return { x: (cx - PADDING) / scale, z: (cy - PADDING) / scale };
 }
 
-export default function ManualEditor({ cabinets, trucks }) {
+export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacementsChange }) {
   const canvasRef = useRef(null);
   const [truckIdx, setTruckIdx] = useState(0);
-  // placements per truck: { [truckId]: [...placements] }
-  const [allPlacements, setAllPlacements] = useState({});
   const [activeCabId, setActiveCabId] = useState(null); // cabinet type id being placed
   const [selectedId, setSelectedId] = useState(null);   // placed instance id
   const dragRef = useRef(null); // { id, offsetX, offsetZ }
+
+  const setAllPlacements = onPlacementsChange;
 
   const truck = trucks[truckIdx] || trucks[0];
   const placements = useMemo(

@@ -33,6 +33,7 @@ export default function App() {
   const [cabinets, setCabinets] = useState(() => loadSaved('al_cabinets', DEFAULT_CABINETS));
   const [trucks, setTrucks] = useState(() => loadSaved('al_trucks', DEFAULT_TRUCKS));
   const [errorMargin, setErrorMargin] = useState(() => loadSaved('al_margin', 5));
+  const [manualPlacements, setManualPlacements] = useState(() => loadSaved('al_manual', {}));
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -41,12 +42,14 @@ export default function App() {
   useEffect(() => { localStorage.setItem('al_cabinets', JSON.stringify(cabinets)); }, [cabinets]);
   useEffect(() => { localStorage.setItem('al_trucks', JSON.stringify(trucks)); }, [trucks]);
   useEffect(() => { localStorage.setItem('al_margin', JSON.stringify(errorMargin)); }, [errorMargin]);
+  useEffect(() => { localStorage.setItem('al_manual', JSON.stringify(manualPlacements)); }, [manualPlacements]);
 
   const handleReset = () => {
     if (window.confirm('Réinitialiser toutes les valeurs aux valeurs par défaut ?')) {
       setCabinets(DEFAULT_CABINETS);
       setTrucks(DEFAULT_TRUCKS);
       setErrorMargin(5);
+      setManualPlacements({});
     }
   };
 
@@ -171,7 +174,12 @@ export default function App() {
       )}
 
       {activeTab === 'manual' && (
-        <ManualEditor cabinets={cabinets} trucks={trucks} />
+        <ManualEditor
+          cabinets={cabinets}
+          trucks={trucks}
+          allPlacements={manualPlacements}
+          onPlacementsChange={setManualPlacements}
+        />
       )}
     </div>
   );
