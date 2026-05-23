@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import styles from './ManualEditor.module.css';
 
-const COLORS = ['#00f5ff','#ff00aa','#aaff00','#ffaa00','#aa00ff','#ff5500','#00ffaa','#ff0055'];
 function genId() { return 'mp_' + Math.random().toString(36).slice(2, 9); }
 
 const PADDING = 40; // canvas padding in px
@@ -30,7 +29,10 @@ export default function ManualEditor({ cabinets, trucks }) {
   const dragRef = useRef(null); // { id, offsetX, offsetZ }
 
   const truck = trucks[truckIdx] || trucks[0];
-  const placements = (truck && allPlacements[truck.id]) || [];
+  const placements = useMemo(
+    () => (truck && allPlacements[truck.id]) || [],
+    [truck, allPlacements]
+  );
 
   const cabCounts = cabinets.map(cab => {
     const placed = placements.filter(p => p.cabId === cab.id).length;
