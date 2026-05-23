@@ -75,13 +75,15 @@
 .row:hover .dragHandle { opacity: 0.5; }
 .dragHandle:hover { opacity: 1 !important; color: var(--neon); }
 
-.chip {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--neon2, #aa00ff);
+.colorInput {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  padding: 1px;
+  background: var(--bg);
+  cursor: pointer;
   flex-shrink: 0;
-  box-shadow: 0 0 5px var(--neon2, #aa00ff);
 }
 
 .label {
@@ -118,6 +120,7 @@
 /* Add bar */
 .addBar {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
 }
 

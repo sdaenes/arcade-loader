@@ -286,6 +286,16 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
     }
   };
 
+  const resetAllPlacements = () => {
+    if (window.confirm(
+      'Réinitialiser tous les placements manuels ?\n\n' +
+      'Tous les camions seront vidés. Cette action est irréversible.'
+    )) {
+      onPlacementsChange({});
+      setSelectedId(null);
+    }
+  };
+
   const exportJSON = () => {
     const data = trucks.map(t => ({
       truckId: t.id,
@@ -371,6 +381,13 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
           <div className={styles.sideTitle}>Export</div>
           <button className={styles.actionBtn} onClick={exportJSON}>↓ JSON</button>
           <button className={styles.actionBtn} onClick={exportCSV}>↓ CSV</button>
+        </div>
+
+        <div className={styles.sideSection}>
+          <div className={styles.sideTitle}>Réinitialiser</div>
+          <button className={`${styles.actionBtn} ${styles.actionDanger}`} onClick={resetAllPlacements}>
+            ⊘ Reset manuel complet
+          </button>
         </div>
 
         <div className={styles.sideLegend}>

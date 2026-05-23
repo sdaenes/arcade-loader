@@ -11,7 +11,17 @@ import Header from './components/Header';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
 
-const DEFAULT_CATEGORIES = ['Candy', 'Gun Cab', 'Race Cab', 'Upright', 'Cocktail', 'Sit-Down', 'HD', 'Deluxe'];
+const DEFAULT_CATEGORIES = [
+  { name: 'Candy',    color: '#00f5ff' },
+  { name: 'Gun Cab',  color: '#ff00aa' },
+  { name: 'Race Cab', color: '#aaff00' },
+  { name: 'Upright',  color: '#ffaa00' },
+  { name: 'Cocktail', color: '#aa00ff' },
+  { name: 'Sit-Down', color: '#ff5500' },
+  { name: 'HD',       color: '#00ffaa' },
+  { name: 'Deluxe',   color: '#ff0055' },
+];
+const CAT_COLORS = ['#00f5ff','#ff00aa','#aaff00','#ffaa00','#aa00ff','#ff5500','#00ffaa','#ff0055'];
 
 const TAB_DEFS = [
   { id: 'setup',      icon: '⚙',  label: 'Configuration' },
@@ -47,7 +57,14 @@ export default function App() {
   const [manualPlacements, setManualPlacements] = useState(() => loadSaved('al_manual', {}));
   const [directory, setDirectory] = useState(() => loadSaved('al_directory', []));
   const [containerTemplates, setContainerTemplates] = useState(() => loadSaved('al_containers', []));
-  const [categories, setCategories] = useState(() => loadSaved('al_categories', DEFAULT_CATEGORIES));
+  const [categories, setCategories] = useState(() => {
+    const saved = loadSaved('al_categories', DEFAULT_CATEGORIES);
+    // Migrate old string-array format to object-array format
+    if (saved.length > 0 && typeof saved[0] === 'string') {
+      return saved.map((name, i) => ({ name, color: CAT_COLORS[i % CAT_COLORS.length] }));
+    }
+    return saved;
+  });
   const [tabOrder, setTabOrder] = useState(() => {
     const saved = loadSaved('al_taborder', null);
     if (!saved) return DEFAULT_TAB_ORDER;
@@ -74,13 +91,12 @@ export default function App() {
   const handleReset = () => {
     if (window.confirm(
       'Réinitialiser la configuration ?\n\n' +
-      'Les bornes et camions de l\'onglet Configuration seront effacés, ainsi que les placements manuels.\n' +
-      'L\'annuaire, les catégories et les contenants sont conservés.'
+      'Les bornes et camions de l\'onglet Configuration seront effacés.\n' +
+      'L\'annuaire, les catégories, les contenants et les placements manuels sont conservés.'
     )) {
       setCabinets([]);
       setTrucks([]);
       setErrorMargin(5);
-      setManualPlacements({});
       setResults(null);
     }
   };
@@ -101,8 +117,11 @@ export default function App() {
     setActiveTab('setup');
   }, [cabinets.length]);
 
-  const handleAddCategory = useCallback((cat) => {
-    setCategories(prev => prev.includes(cat) ? prev : [...prev, cat]);
+  const handleAddCategory = useCallback((catName) => {
+    setCategories(prev => {
+      if (prev.some(c => c.name === catName)) return prev;
+      return [...prev, { name: catName, color: CAT_COLORS[prev.length % CAT_COLORS.length] }];
+    });
   }, []);
 
   const handleOptimize = useCallback(async () => {

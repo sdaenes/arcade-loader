@@ -3,34 +3,45 @@ import styles from './CategoryManager.module.css';
 
 function CategoryRow({ category, onUpdate, onDelete, dragHandlers }) {
   const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(category);
+  const [nameVal, setNameVal] = useState(category.name);
 
   const commit = () => {
-    const trimmed = value.trim();
-    if (trimmed && trimmed !== category) onUpdate(trimmed);
-    else setValue(category);
+    const trimmed = nameVal.trim();
+    if (trimmed && trimmed !== category.name) onUpdate({ ...category, name: trimmed });
+    else setNameVal(category.name);
     setEditing(false);
   };
 
   return (
     <div className={styles.row} {...dragHandlers}>
       <span className={styles.dragHandle} title="Glisser pour réordonner">⠿</span>
-      <span className={styles.chip} />
+      <input
+        type="color"
+        className={styles.colorInput}
+        value={category.color || '#888888'}
+        title="Changer la couleur"
+        onChange={(e) => onUpdate({ ...category, color: e.target.value })}
+      />
       {editing ? (
         <input
           className={styles.editInput}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
+          value={nameVal}
+          onChange={(e) => setNameVal(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => {
             if (e.key === 'Enter') commit();
-            if (e.key === 'Escape') { setValue(category); setEditing(false); }
+            if (e.key === 'Escape') { setNameVal(category.name); setEditing(false); }
           }}
           autoFocus
         />
       ) : (
-        <span className={styles.label} onClick={() => setEditing(true)} title="Cliquer pour renommer">
-          {category}
+        <span
+          className={styles.label}
+          style={{ color: category.color }}
+          onClick={() => setEditing(true)}
+          title="Cliquer pour renommer"
+        >
+          {category.name}
         </span>
       )}
       <button className={styles.deleteBtn} onClick={onDelete} title="Supprimer">✕</button>
@@ -40,19 +51,20 @@ function CategoryRow({ category, onUpdate, onDelete, dragHandlers }) {
 
 export default function CategoryManager({ categories, onCategoriesChange }) {
   const [newCat, setNewCat] = useState('');
+  const [newColor, setNewColor] = useState('#00f5ff');
   const dragIdx = useRef(null);
 
   const handleAdd = () => {
     const trimmed = newCat.trim();
-    if (!trimmed || categories.includes(trimmed)) return;
-    onCategoriesChange([...categories, trimmed]);
+    if (!trimmed || categories.some(c => c.name === trimmed)) return;
+    onCategoriesChange([...categories, { name: trimmed, color: newColor }]);
     setNewCat('');
   };
 
-  const handleUpdate = (idx, newVal) => {
-    if (categories.includes(newVal)) return;
+  const handleUpdate = (idx, updated) => {
+    if (categories.some((c, i) => i !== idx && c.name === updated.name)) return;
     const next = [...categories];
-    next[idx] = newVal;
+    next[idx] = updated;
     onCategoriesChange(next);
   };
 
@@ -68,7 +80,7 @@ export default function CategoryManager({ categories, onCategoriesChange }) {
           <div>
             <h2 className={styles.headerTitle}>Catégories de bornes</h2>
             <p className={styles.headerSub}>
-              Gérez les catégories utilisées dans l'annuaire. Cliquez sur un nom pour le renommer, glissez pour réordonner.
+              Gérez les catégories utilisées dans l'annuaire. Cliquez sur un nom pour le renommer, sur la couleur pour la modifier.
             </p>
           </div>
         </div>
@@ -78,15 +90,13 @@ export default function CategoryManager({ categories, onCategoriesChange }) {
       <div className={styles.body}>
         <div className={styles.list}>
           {categories.length === 0 && (
-            <div className={styles.empty}>
-              Aucune catégorie définie. Ajoutez-en ci-dessous.
-            </div>
+            <div className={styles.empty}>Aucune catégorie définie. Ajoutez-en ci-dessous.</div>
           )}
           {categories.map((cat, i) => (
             <CategoryRow
-              key={cat + i}
+              key={cat.name + i}
               category={cat}
-              onUpdate={(val) => handleUpdate(i, val)}
+              onUpdate={(updated) => handleUpdate(i, updated)}
               onDelete={() => handleDelete(i)}
               dragHandlers={{
                 draggable: true,
@@ -107,6 +117,13 @@ export default function CategoryManager({ categories, onCategoriesChange }) {
 
         <div className={styles.addBar}>
           <input
+            type="color"
+            className={styles.colorInput}
+            value={newColor}
+            onChange={(e) => setNewColor(e.target.value)}
+            title="Couleur de la nouvelle catégorie"
+          />
+          <input
             className={styles.addInput}
             placeholder="Nouvelle catégorie…"
             value={newCat}
@@ -116,7 +133,7 @@ export default function CategoryManager({ categories, onCategoriesChange }) {
           <button
             className={styles.addBtn}
             onClick={handleAdd}
-            disabled={!newCat.trim() || categories.includes(newCat.trim())}
+            disabled={!newCat.trim() || categories.some(c => c.name === newCat.trim())}
           >
             + Ajouter
           </button>

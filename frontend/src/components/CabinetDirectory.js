@@ -43,14 +43,14 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categ
       const res = await fetch(`${API_BASE}/api/search-cabinet`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: cab.name, deep, categories }),
+        body: JSON.stringify({ name: cab.name, deep, categories: categories.map(c => c.name) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erreur serveur');
 
       if (
         data.suggestedNewCategory &&
-        !categories.includes(data.suggestedNewCategory) &&
+        !categories.some(c => c.name === data.suggestedNewCategory) &&
         window.confirm(`Claude propose d'ajouter la catégorie "${data.suggestedNewCategory}". L'ajouter à la liste ?`)
       ) {
         onAddCategory(data.suggestedNewCategory);
@@ -80,7 +80,15 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categ
           <span className={styles.dragHandle} title="Glisser pour réordonner">⠿</span>
           <span className={styles.dot} style={{ background: cab.color }} />
           <span className={styles.cardName}>{cab.name || '—'}</span>
-          {cab.category && <span className={styles.catBadge}>{cab.category}</span>}
+          {cab.category && (() => {
+            const catObj = categories.find(c => c.name === cab.category);
+            const col = catObj?.color || '#888888';
+            return (
+              <span className={styles.catBadge} style={{ color: col, borderColor: col + '66', background: col + '18' }}>
+                {cab.category}
+              </span>
+            );
+          })()}
           {cab.weight != null && <span className={styles.cardMeta}>{cab.weight} kg</span>}
         </div>
         <div className={styles.cardHeaderRight}>
@@ -104,7 +112,7 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categ
             >
               <option value="">— Non catégorisé —</option>
               {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat.name} value={cat.name}>{cat.name}</option>
               ))}
             </select>
           </div>
@@ -234,7 +242,7 @@ export default function CabinetDirectory({ directory, onDirectoryChange, onAddTo
           <label className={styles.toolbarLabel}>Filtrer</label>
           <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)}>
             <option value="">Toutes les catégories</option>
-            {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            {categories.map(cat => <option key={cat.name} value={cat.name}>{cat.name}</option>)}
           </select>
         </div>
         {filterCat && (

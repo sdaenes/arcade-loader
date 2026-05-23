@@ -6,6 +6,35 @@ const { optimizeLoading } = require('./optimizer');
 
 const anthropic = new Anthropic();
 
+async function searchArcadeOtaku(name) {
+  try {
+    const base = 'https://wiki.arcadeotaku.com/api.php';
+    const searchRes = await fetch(
+      `${base}?action=query&list=search&srsearch=${encodeURIComponent(name)}&format=json&srlimit=2`,
+      { headers: { 'User-Agent': 'ArcadeLoader/1.0' }, signal: AbortSignal.timeout(7000) }
+    );
+    const searchData = await searchRes.json();
+    const hits = searchData?.query?.search || [];
+    if (hits.length === 0) return null;
+
+    const title = hits[0].title;
+    const extractRes = await fetch(
+      `${base}?action=query&prop=extracts&titles=${encodeURIComponent(title)}&format=json&exlimit=1&exchars=6000`,
+      { headers: { 'User-Agent': 'ArcadeLoader/1.0' }, signal: AbortSignal.timeout(7000) }
+    );
+    const extractData = await extractRes.json();
+    const pages = extractData?.query?.pages || {};
+    const page = Object.values(pages)[0];
+    if (!page?.extract || page.extract.length < 80) return null;
+
+    const text = page.extract
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+    return { title, text };
+  } catch (_) { return null; }
+}
+
 async function searchWikipedia(name) {
   for (const lang of ['fr', 'en']) {
     try {
@@ -79,37 +108,48 @@ app.post('/api/search-cabinet', async (req, res) => {
     return res.status(503).json({ error: 'ANTHROPIC_API_KEY non configurée sur le serveur.' });
   }
   try {
-    const wikiData = await searchWikipedia(name.trim());
-    const wikiContext = wikiData
-      ? `Voici le contenu Wikipedia pour "${wikiData.title}" (${wikiData.lang === 'fr' ? 'Wikipedia FR' : 'Wikipedia EN'}) :\n\n${wikiData.text}\n\n`
-      : '';
-    const wikiNote = wikiData ? `Source : ${wikiData.lang === 'fr' ? 'Wikipedia FR' : 'Wikipedia EN'} (${wikiData.title})` : 'Source : connaissances de Claude (aucune page Wikipedia trouvée)';
+    const [wikiData, otakuData] = await Promise.all([
+      searchWikipedia(name.trim()),
+      searchArcadeOtaku(name.trim()),
+    ]);
 
     const catList = categories.length > 0 ? categories.join(', ') : null;
     const catInstruction = catList
-      ? `Catégories disponibles : ${catList}. Choisis la plus appropriée. Si aucune ne convient, mets la meilleure approximation dans "category" ET le nom suggéré dans "suggestedNewCategory".`
-      : 'Aucune catégorie définie. Laisse "category" à null et "suggestedNewCategory" à null.';
+      ? `Catégories disponibles : ${catList}. Choisis la plus appropriée. Si aucune ne convient, mets ta meilleure approximation dans "category" ET le nom suggéré dans "suggestedNewCategory".`
+      : 'Aucune catégorie définie. Laisse "category" et "suggestedNewCategory" à null.';
 
-    const jsonFormat = `{"width": <m>, "height": <m>, "depth": <m>, "weight": <kg>, "category": "<catégorie ou null>", "suggestedNewCategory": <null ou "nom suggéré">, "notes": "<description>"}`;
+    const jsonFormat = `{"width": <m>, "height": <m>, "depth": <m>, "weight": <kg>, "category": "<catégorie ou null>", "suggestedNewCategory": <null ou "nom suggéré">, "notes": "<description générée par toi>"}`;
 
-    const promptSimple = `${wikiContext}Extrais les dimensions physiques extérieures et le poids de la borne d'arcade "${name.trim()}".
-${catInstruction}
+    const buildSourcesBlock = () => {
+      const parts = [];
+      if (otakuData) parts.push(`=== ARCADE OTAKU (prioritaire pour dimensions/poids) ===\n${otakuData.text}`);
+      if (wikiData) parts.push(`=== WIKIPEDIA ${wikiData.lang.toUpperCase()} ===\n${wikiData.text}`);
+      return parts.length > 0
+        ? `[SOURCES DISPONIBLES]\n\n${parts.join('\n\n')}\n\n`
+        : '[AUCUNE SOURCE EXTERNE TROUVÉE — utilise tes connaissances]\n\n';
+    };
+
+    const sourcesBlock = buildSourcesBlock();
+    const hasSources = !!(otakuData || wikiData);
+
+    const commonInstructions = `Tu es un expert en bornes d'arcade. Pour la borne "${name.trim()}" :
+
+RÈGLES :
+- NOTES : Génère toi-même une description riche (fabricant, année, histoire, variantes, caractéristiques techniques). Ne copie pas le texte des sources brutes.
+- CATÉGORIE : ${catInstruction}
+- DIMENSIONS & POIDS : ${otakuData ? 'Utilise PRIORITAIREMENT les données Arcade Otaku.' : wikiData ? 'Utilise les données Wikipedia.' : 'Utilise tes connaissances.'} ${hasSources ? 'Indique la source dans "notes".' : ''}
+
 Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
-${jsonFormat}
-Dans "notes" : ${wikiNote}.`;
+${jsonFormat}`;
 
-    const promptDeep = `${wikiContext}Analyse approfondie de la borne d'arcade "${name.trim()}".
-${wikiData ? 'Le texte Wikipedia ci-dessus contient les données de référence — utilise-les en priorité.' : 'Aucune source Wikipedia trouvée — utilise tes connaissances.'}
+    const promptSimple = `${sourcesBlock}${commonInstructions}`;
+
+    const promptDeep = `${sourcesBlock}${commonInstructions}
+
 Raisonne étape par étape :
-1. Identifie fabricant, modèle exact et variante (originale, mini, cocktail, deluxe…)
-2. Extrais les dimensions extérieures précises (largeur, hauteur, profondeur) en mètres
-3. Note le poids avec accessoires standards
-4. Indique niveau de confiance : ÉLEVÉ (source directe), MOYEN (source proche), FAIBLE (estimation)
-5. ${catInstruction}
-
-Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
-${jsonFormat}
-Dans "notes" : fabricant, variante, niveau de confiance, ${wikiNote}.`;
+1. Identifie fabricant, modèle exact, année, variantes
+2. Vérifie les dimensions dans chaque source disponible et retiens les plus fiables
+3. Indique le niveau de confiance : ÉLEVÉ / MOYEN / FAIBLE`;
 
     const requestParams = {
       model: 'claude-opus-4-7',
