@@ -59,21 +59,21 @@ function TruckRow({ truck, onChange, onDelete }) {
           <div className={styles.dimsGrid}>
             <div className={styles.fieldRow}>
               <label>Largeur (m)</label>
-              <input type="number" step={0.01} min={0.1}
+              <input type="number" step={0.01} min={0}
                 value={truck.width}
-                onChange={(e) => onChange({ ...truck, width: parseFloat(e.target.value) || 0.1 })} />
+                onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) onChange({ ...truck, width: v }); }} />
             </div>
             <div className={styles.fieldRow}>
               <label>Hauteur (m)</label>
-              <input type="number" step={0.01} min={0.1}
+              <input type="number" step={0.01} min={0}
                 value={truck.height}
-                onChange={(e) => onChange({ ...truck, height: parseFloat(e.target.value) || 0.1 })} />
+                onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) onChange({ ...truck, height: v }); }} />
             </div>
             <div className={styles.fieldRow}>
               <label>Profondeur (m)</label>
-              <input type="number" step={0.01} min={0.1}
+              <input type="number" step={0.01} min={0}
                 value={truck.depth}
-                onChange={(e) => onChange({ ...truck, depth: parseFloat(e.target.value) || 0.1 })} />
+                onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) onChange({ ...truck, depth: v }); }} />
             </div>
           </div>
           <div className={styles.fieldRow}>

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/opt/homebrew/bin/gh repo *)",
+      "Bash(RAILWAY_TOKEN=0490f49c-85fb-4033-9721-a5957b0e25b6 /opt/homebrew/bin/railway init --name arcade-loader)",
+      "Bash(git push *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}

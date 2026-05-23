@@ -214,6 +214,32 @@
   background: rgba(255, 51, 85, 0.2);
 }
 
+.importBar {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.15);
+}
+
+.importBtn {
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+
+.importBtn:hover {
+  color: var(--neon);
+  border-color: var(--neon);
+  background: rgba(0, 245, 255, 0.06);
+}
+
 .addBtn {
   width: 100%;
   background: transparent;

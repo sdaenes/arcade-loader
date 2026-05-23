@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import styles from './App.module.css';
 import CabinetPanel from './components/CabinetPanel';
 import TruckPanel from './components/TruckPanel';
 import ResultsView from './components/ResultsView';
+import ManualEditor from './components/ManualEditor';
 import Header from './components/Header';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
@@ -19,14 +20,35 @@ const DEFAULT_TRUCKS = [
   { id: 'truck3', name: 'Camion C', width: 2.4, height: 2.5, depth: 7.0 },
 ];
 
+function loadSaved(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export default function App() {
-  const [cabinets, setCabinets] = useState(DEFAULT_CABINETS);
-  const [trucks, setTrucks] = useState(DEFAULT_TRUCKS);
-  const [errorMargin, setErrorMargin] = useState(5);
+  const [cabinets, setCabinets] = useState(() => loadSaved('al_cabinets', DEFAULT_CABINETS));
+  const [trucks, setTrucks] = useState(() => loadSaved('al_trucks', DEFAULT_TRUCKS));
+  const [errorMargin, setErrorMargin] = useState(() => loadSaved('al_margin', 5));
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('setup'); // 'setup' | 'results'
+  const [activeTab, setActiveTab] = useState('setup'); // 'setup' | 'results' | 'manual'
+
+  useEffect(() => { localStorage.setItem('al_cabinets', JSON.stringify(cabinets)); }, [cabinets]);
+  useEffect(() => { localStorage.setItem('al_trucks', JSON.stringify(trucks)); }, [trucks]);
+  useEffect(() => { localStorage.setItem('al_margin', JSON.stringify(errorMargin)); }, [errorMargin]);
+
+  const handleReset = () => {
+    if (window.confirm('Réinitialiser toutes les valeurs aux valeurs par défaut ?')) {
+      setCabinets(DEFAULT_CABINETS);
+      setTrucks(DEFAULT_TRUCKS);
+      setErrorMargin(5);
+    }
+  };
 
   const handleOptimize = useCallback(async () => {
     setLoading(true);
@@ -51,7 +73,7 @@ export default function App() {
     }
   }, [cabinets, trucks, errorMargin]);
 
-  const totalCabinets = cabinets.reduce((s, c) => s + (c.quantity || 1), 0);
+  const totalCabinets = cabinets.reduce((s, c) => s + (c.quantity || 0), 0);
   const totalTruckVolume = trucks.reduce((s, t) => s + t.width * t.height * t.depth, 0);
 
   return (
@@ -72,6 +94,15 @@ export default function App() {
           <span className={styles.tabIcon}>📦</span> Résultats
           {results && <span className={styles.tabBadge}>{results.placedCabinets}/{results.totalCabinets}</span>}
         </button>
+        <button
+          className={`${styles.tab} ${activeTab === 'manual' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('manual')}
+        >
+          <span className={styles.tabIcon}>✏</span> Placement manuel
+        </button>
+        <button className={styles.tabReset} onClick={handleReset} title="Réinitialiser aux valeurs par défaut">
+          ↺ Reset
+        </button>
       </div>
 
       {activeTab === 'setup' && (
@@ -82,7 +113,6 @@ export default function App() {
           <div className={styles.column}>
             <TruckPanel trucks={trucks} onChange={setTrucks} />
 
-            {/* Error margin + optimize */}
             <div className={styles.controlPanel}>
               <div className={styles.marginControl}>
                 <div className={styles.marginHeader}>
@@ -138,6 +168,10 @@ export default function App() {
 
       {activeTab === 'results' && results && (
         <ResultsView results={results} trucks={trucks} onBack={() => setActiveTab('setup')} />
+      )}
+
+      {activeTab === 'manual' && (
+        <ManualEditor cabinets={cabinets} trucks={trucks} />
       )}
     </div>
   );

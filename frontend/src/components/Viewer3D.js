@@ -134,6 +134,26 @@ export default function Viewer3D({ truckData }) {
         const edgeLines = new THREE.LineSegments(edges, edgeMat);
         edgeLines.position.copy(mesh.position);
         truckGroup.add(edgeLines);
+
+        // Label sprite
+        const labelCanvas = document.createElement('canvas');
+        labelCanvas.width = 256;
+        labelCanvas.height = 48;
+        const ctx = labelCanvas.getContext('2d');
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.roundRect(2, 2, 252, 44, 6);
+        ctx.fill();
+        ctx.fillStyle = p.color || '#ffffff';
+        ctx.font = 'bold 22px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(p.cabinetName, 128, 24);
+        const tex = new THREE.CanvasTexture(labelCanvas);
+        const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.scale.set(p.width * 1.1, p.width * 0.22, 1);
+        sprite.position.set(p.x + p.width / 2, p.y + p.height + 0.12, p.z + p.depth / 2);
+        truckGroup.add(sprite);
       }
 
       // Center camera on truck
