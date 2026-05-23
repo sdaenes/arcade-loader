@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import styles from './CabinetDirectory.module.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
@@ -31,19 +31,19 @@ function Field({ label, value, onChange, type = 'text', unit }) {
   );
 }
 
-function CabinetCard({ cab, onUpdate, onDelete, onAddToList }) {
+function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers }) {
   const [expanded, setExpanded] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(null);
 
-  const handleSearch = useCallback(async () => {
-    setSearching(true);
+  const doSearch = useCallback(async (deep) => {
+    setSearching(deep ? 'deep' : 'quick');
     setSearchError(null);
     try {
       const res = await fetch(`${API_BASE}/api/search-cabinet`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: cab.name }),
+        body: JSON.stringify({ name: cab.name, deep }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erreur serveur');
@@ -64,9 +64,10 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList }) {
   }, [cab, onUpdate]);
 
   return (
-    <div className={styles.card} style={{ borderLeftColor: cab.color }}>
+    <div className={styles.card} style={{ borderLeftColor: cab.color }} {...dragHandlers}>
       <div className={styles.cardHeader} onClick={() => setExpanded(!expanded)}>
         <div className={styles.cardHeaderLeft}>
+          <span className={styles.dragHandle} title="Glisser pour réordonner">⠿</span>
           <span className={styles.dot} style={{ background: cab.color }} />
           <span className={styles.cardName}>{cab.name || '—'}</span>
           {cab.weight != null && (
@@ -117,14 +118,26 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList }) {
           <div className={styles.cardActions}>
             <button
               className={styles.searchBtn}
-              onClick={handleSearch}
-              disabled={searching || !cab.name.trim()}
-              title="Interroger Claude pour obtenir les dimensions"
+              onClick={() => doSearch(false)}
+              disabled={!!searching || !cab.name.trim()}
+              title="Recherche rapide via Claude"
             >
-              {searching ? (
+              {searching === 'quick' ? (
                 <span className={styles.dots}>Recherche<span>.</span><span>.</span><span>.</span></span>
               ) : (
                 '✦ Rechercher via Claude'
+              )}
+            </button>
+            <button
+              className={styles.deepBtn}
+              onClick={() => doSearch(true)}
+              disabled={!!searching || !cab.name.trim()}
+              title="Recherche approfondie — Claude raisonne en détail sur le modèle exact"
+            >
+              {searching === 'deep' ? (
+                <span className={styles.dots}>Analyse<span>.</span><span>.</span><span>.</span></span>
+              ) : (
+                '⚡ Recherche approfondie'
               )}
             </button>
             <button
@@ -146,6 +159,8 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList }) {
 }
 
 export default function CabinetDirectory({ directory, onDirectoryChange, onAddToConfig }) {
+  const dragIdx = useRef(null);
+
   const handleUpdate = (idx, updated) => {
     const next = [...directory];
     next[idx] = updated;
@@ -208,6 +223,19 @@ export default function CabinetDirectory({ directory, onDirectoryChange, onAddTo
             onUpdate={(updated) => handleUpdate(i, updated)}
             onDelete={() => handleDelete(i)}
             onAddToList={handleAddToConfig}
+            dragHandlers={{
+              draggable: true,
+              onDragStart: () => { dragIdx.current = i; },
+              onDragOver: (e) => e.preventDefault(),
+              onDrop: () => {
+                const from = dragIdx.current;
+                if (from === null || from === i) return;
+                const next = [...directory];
+                const [item] = next.splice(from, 1);
+                next.splice(i, 0, item);
+                onDirectoryChange(next);
+              },
+            }}
           />
         ))}
       </div>

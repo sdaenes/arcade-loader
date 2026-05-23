@@ -1,24 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import styles from './Panel.module.css';
 
 function genId() { return 'truck_' + Math.random().toString(36).slice(2, 7); }
 
-const BUILTIN_PRESETS = [
-  { label: 'Fourgon 12m³', width: 2.1, height: 2.2, depth: 2.6 },
-  { label: 'Camion 20m³', width: 2.4, height: 2.5, depth: 7.0 },
-  { label: 'Camion 30m³', width: 2.4, height: 2.5, depth: 8.5 },
-  { label: 'Semi 90m³', width: 2.4, height: 2.5, depth: 13.6 },
-  { label: "Container 20'", width: 2.35, height: 2.39, depth: 5.90 },
-  { label: "Container 40'", width: 2.35, height: 2.39, depth: 12.03 },
-];
-
-function TruckRow({ truck, onChange, onDelete, presets }) {
+function TruckRow({ truck, onChange, onDelete, presets, dragHandlers }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className={styles.itemCard} style={{ borderLeftColor: '#ffaa00' }}>
+    <div className={styles.itemCard} style={{ borderLeftColor: '#ffaa00' }} {...dragHandlers}>
       <div className={styles.itemHeader} onClick={() => setExpanded(!expanded)}>
         <div className={styles.itemHeaderLeft}>
+          <span className={styles.dragHandle} title="Glisser pour réordonner">⠿</span>
           <span className={styles.colorDot} style={{ background: '#ffaa00' }} />
           <span className={styles.itemName}>{truck.name}</span>
         </div>
@@ -47,30 +39,22 @@ function TruckRow({ truck, onChange, onDelete, presets }) {
               defaultValue=""
               onChange={(e) => {
                 const val = e.target.value;
-                const custom = presets.find(p => (p.name || p.label) === val);
-                const builtin = BUILTIN_PRESETS.find(p => p.label === val);
-                const p = custom || builtin;
+                const p = presets.find(p => (p.name || p.label) === val);
                 if (p) onChange({ ...truck, width: p.width, height: p.height, depth: p.depth });
               }}
             >
               <option value="">— Choisir un modèle —</option>
-              {presets.length > 0 && (
-                <optgroup label="Mes contenants">
-                  {presets.map(p => {
-                    const label = p.name || p.label;
-                    return (
-                      <option key={p.id || label} value={label}>
-                        {label} ({p.width}×{p.height}×{p.depth} m)
-                      </option>
-                    );
-                  })}
-                </optgroup>
+              {presets.length === 0 && (
+                <option disabled value="">Aucun contenant défini (onglet Contenants)</option>
               )}
-              <optgroup label="Modèles standards">
-                {BUILTIN_PRESETS.map(p => (
-                  <option key={p.label} value={p.label}>{p.label} ({p.width}×{p.height}×{p.depth} m)</option>
-                ))}
-              </optgroup>
+              {presets.map(p => {
+                const label = p.name || p.label;
+                return (
+                  <option key={p.id || label} value={label}>
+                    {label} ({p.width}×{p.height}×{p.depth} m)
+                  </option>
+                );
+              })}
             </select>
           </div>
           <div className={styles.dimsGrid}>
@@ -107,6 +91,8 @@ function TruckRow({ truck, onChange, onDelete, presets }) {
 }
 
 export default function TruckPanel({ trucks, onChange, containerTemplates = [] }) {
+  const dragIdx = useRef(null);
+
   const handleChange = (idx, updated) => {
     const next = [...trucks];
     next[idx] = updated;
@@ -141,6 +127,19 @@ export default function TruckPanel({ trucks, onChange, containerTemplates = [] }
             presets={containerTemplates}
             onChange={(updated) => handleChange(i, updated)}
             onDelete={() => onChange(trucks.filter((_, j) => j !== i))}
+            dragHandlers={{
+              draggable: true,
+              onDragStart: () => { dragIdx.current = i; },
+              onDragOver: (e) => e.preventDefault(),
+              onDrop: () => {
+                const from = dragIdx.current;
+                if (from === null || from === i) return;
+                const next = [...trucks];
+                const [item] = next.splice(from, 1);
+                next.splice(i, 0, item);
+                onChange(next);
+              },
+            }}
           />
         ))}
       </div>

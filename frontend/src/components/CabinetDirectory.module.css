@@ -100,6 +100,19 @@
   min-width: 0;
 }
 
+.dragHandle {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  cursor: grab;
+  padding: 0 0.2rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.card:hover .dragHandle { opacity: 0.5; }
+.dragHandle:hover { opacity: 1 !important; color: var(--neon); }
+
 .dot {
   width: 9px;
   height: 9px;
@@ -220,7 +233,7 @@
 
 .searchBtn {
   flex: 1;
-  min-width: 160px;
+  min-width: 150px;
   background: rgba(170, 0, 255, 0.1);
   border: 1px solid var(--neon2, #aa00ff);
   color: var(--neon2, #aa00ff);
@@ -237,6 +250,26 @@
 }
 
 .searchBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.deepBtn {
+  flex: 1;
+  min-width: 150px;
+  background: rgba(0, 245, 255, 0.06);
+  border: 1px solid var(--neon);
+  color: var(--neon);
+  font-size: 0.78rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  transition: all 0.15s;
+}
+
+.deepBtn:hover:not(:disabled) {
+  background: rgba(0, 245, 255, 0.15);
+  box-shadow: 0 0 8px rgba(0, 245, 255, 0.35);
+}
+
+.deepBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .addBtn {
   background: rgba(0, 245, 255, 0.08);

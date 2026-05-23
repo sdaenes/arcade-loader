@@ -21,13 +21,14 @@ function numInput(value, field, onChange, cab, extra = {}) {
   );
 }
 
-function CabinetRow({ cabinet, onChange, onDelete }) {
+function CabinetRow({ cabinet, onChange, onDelete, dragHandlers }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className={styles.itemCard} style={{ borderLeftColor: cabinet.color }}>
+    <div className={styles.itemCard} style={{ borderLeftColor: cabinet.color }} {...dragHandlers}>
       <div className={styles.itemHeader} onClick={() => setExpanded(!expanded)}>
         <div className={styles.itemHeaderLeft}>
+          <span className={styles.dragHandle} title="Glisser pour réordonner" onMouseDown={(e) => e.stopPropagation()}>⠿</span>
           <span className={styles.colorDot} style={{ background: cabinet.color }} />
           <span className={styles.itemName}>{cabinet.name}</span>
         </div>
@@ -111,6 +112,7 @@ function CabinetRow({ cabinet, onChange, onDelete }) {
 
 export default function CabinetPanel({ cabinets, onChange }) {
   const fileRef = useRef(null);
+  const dragIdx = useRef(null);
 
   const handleChange = (idx, updated) => {
     const next = [...cabinets];
@@ -229,6 +231,19 @@ export default function CabinetPanel({ cabinets, onChange }) {
             cabinet={cab}
             onChange={(updated) => handleChange(i, updated)}
             onDelete={() => handleDelete(i)}
+            dragHandlers={{
+              draggable: true,
+              onDragStart: () => { dragIdx.current = i; },
+              onDragOver: (e) => e.preventDefault(),
+              onDrop: () => {
+                const from = dragIdx.current;
+                if (from === null || from === i) return;
+                const next = [...cabinets];
+                const [item] = next.splice(from, 1);
+                next.splice(i, 0, item);
+                onChange(next);
+              },
+            }}
           />
         ))}
       </div>

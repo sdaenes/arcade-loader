@@ -38,7 +38,7 @@ app.post('/api/optimize', (req, res) => {
 });
 
 app.post('/api/search-cabinet', async (req, res) => {
-  const { name } = req.body;
+  const { name, deep = false } = req.body;
   if (!name || typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ error: 'Nom de borne requis.' });
   }
@@ -46,19 +46,33 @@ app.post('/api/search-cabinet', async (req, res) => {
     return res.status(503).json({ error: 'ANTHROPIC_API_KEY non configurée sur le serveur.' });
   }
   try {
-    const msg = await anthropic.messages.create({
-      model: 'claude-opus-4-7',
-      max_tokens: 1024,
-      messages: [{
-        role: 'user',
-        content: `Tu es un expert en bornes d'arcade. Pour la borne "${name.trim()}", fournis ses dimensions physiques typiques et son poids.
+    const promptSimple = `Tu es un expert en bornes d'arcade. Pour la borne "${name.trim()}", fournis ses dimensions physiques typiques et son poids.
 Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) au format exact suivant :
 {"width": <largeur en mètres>, "height": <hauteur en mètres>, "depth": <profondeur en mètres>, "weight": <poids en kg>, "notes": "<courte description en français>"}
-Si tu ne connais pas cette borne précisément, fournis des estimations typiques pour une borne de ce type et indique-le dans notes.`,
-      }],
-    });
+Si tu ne connais pas cette borne précisément, fournis des estimations typiques pour une borne de ce type et indique-le dans notes.`;
 
-    const raw = msg.content[0].text.trim();
+    const promptDeep = `Tu es un expert en bornes d'arcade. Effectue une recherche approfondie sur la borne "${name.trim()}".
+Raisonne étape par étape :
+1. Identifie le fabricant exact et le nom complet du modèle
+2. Note les variantes existantes (version originale, mini, cocktail, deluxe, etc.) et précise laquelle tu décris
+3. Donne les dimensions extérieures précises (largeur, hauteur, profondeur) en mètres avec au moins 2 décimales
+4. Estime le poids en kg (avec accessoires standards : joystick, boutons, écran)
+5. Indique ton niveau de confiance : ÉLEVÉ (specs officielles connues), MOYEN (très proche d'une source connue), FAIBLE (estimation)
+
+Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) au format exact :
+{"width": <m>, "height": <m>, "depth": <m>, "weight": <kg>, "notes": "<fabricant, modèle exact, variante décrite, niveau de confiance et source si connue>"}`;
+
+    const requestParams = {
+      model: 'claude-opus-4-7',
+      max_tokens: deep ? 4096 : 1024,
+      messages: [{ role: 'user', content: deep ? promptDeep : promptSimple }],
+    };
+    if (deep) requestParams.thinking = { type: 'adaptive' };
+
+    const msg = await anthropic.messages.create(requestParams);
+
+    const textBlock = msg.content.find(b => b.type === 'text');
+    const raw = textBlock ? textBlock.text.trim() : '';
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('Format JSON invalide dans la réponse.');
     const data = JSON.parse(jsonMatch[0]);

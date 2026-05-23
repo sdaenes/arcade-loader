@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import styles from './ContainerManager.module.css';
 
 function genId() { return 'ct_' + Math.random().toString(36).slice(2, 8); }
@@ -30,14 +30,15 @@ function NumField({ label, value, onChange }) {
   );
 }
 
-function ContainerCard({ container, onUpdate, onDelete }) {
+function ContainerCard({ container, onUpdate, onDelete, dragHandlers }) {
   const [expanded, setExpanded] = useState(false);
   const vol = (container.width * container.height * container.depth).toFixed(2);
 
   return (
-    <div className={styles.card}>
+    <div className={styles.card} {...dragHandlers}>
       <div className={styles.cardHeader} onClick={() => setExpanded(!expanded)}>
         <div className={styles.cardHeaderLeft}>
+          <span className={styles.dragHandle} title="Glisser pour réordonner">⠿</span>
           <span className={styles.icon}>📦</span>
           <span className={styles.cardName}>{container.name || '—'}</span>
           <span className={styles.volBadge}>{vol} m³</span>
@@ -112,6 +113,8 @@ function ContainerCard({ container, onUpdate, onDelete }) {
 }
 
 export default function ContainerManager({ containerTemplates, onContainerTemplatesChange }) {
+  const dragIdx = useRef(null);
+
   const handleUpdate = (idx, updated) => {
     const next = [...containerTemplates];
     next[idx] = updated;
@@ -125,17 +128,6 @@ export default function ContainerManager({ containerTemplates, onContainerTempla
       width: 2.4,
       height: 2.5,
       depth: 7.0,
-      notes: '',
-    }]);
-  };
-
-  const handleImportPreset = (preset) => {
-    onContainerTemplatesChange([...containerTemplates, {
-      id: genId(),
-      name: preset.label,
-      width: preset.width,
-      height: preset.height,
-      depth: preset.depth,
       notes: '',
     }]);
   };
@@ -156,28 +148,10 @@ export default function ContainerManager({ containerTemplates, onContainerTempla
       </div>
 
       <div className={styles.body}>
-        <div className={styles.presetsSection}>
-          <div className={styles.presetsTitle}>
-            Modèles standards — cliquez pour ajouter
-          </div>
-          <div className={styles.presetsList}>
-            {FACTORY_PRESETS.map(p => (
-              <button
-                key={p.label}
-                className={styles.presetChip}
-                onClick={() => handleImportPreset(p)}
-              >
-                <span className={styles.presetLabel}>{p.label}</span>
-                <span className={styles.presetDim}>{p.width}×{p.height}×{p.depth} m</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div className={styles.list}>
           {containerTemplates.length === 0 && (
             <div className={styles.empty}>
-              Aucun contenant défini. Ajoutez des modèles standards ci-dessus ou créez-en un personnalisé.
+              Aucun contenant défini. Créez-en un ci-dessous, puis utilisez le menu "Modèle rapide" à l'intérieur pour appliquer des dimensions standard.
             </div>
           )}
           {containerTemplates.map((ct, i) => (
@@ -186,12 +160,25 @@ export default function ContainerManager({ containerTemplates, onContainerTempla
               container={ct}
               onUpdate={(updated) => handleUpdate(i, updated)}
               onDelete={() => onContainerTemplatesChange(containerTemplates.filter((_, j) => j !== i))}
+              dragHandlers={{
+                draggable: true,
+                onDragStart: () => { dragIdx.current = i; },
+                onDragOver: (e) => e.preventDefault(),
+                onDrop: () => {
+                  const from = dragIdx.current;
+                  if (from === null || from === i) return;
+                  const next = [...containerTemplates];
+                  const [item] = next.splice(from, 1);
+                  next.splice(i, 0, item);
+                  onContainerTemplatesChange(next);
+                },
+              }}
             />
           ))}
         </div>
 
         <button className={styles.newBtn} onClick={handleAdd}>
-          + Créer un contenant personnalisé
+          + Créer un contenant
         </button>
       </div>
     </div>
