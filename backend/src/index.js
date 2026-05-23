@@ -71,7 +71,7 @@ app.post('/api/optimize', (req, res) => {
 });
 
 app.post('/api/search-cabinet', async (req, res) => {
-  const { name, deep = false } = req.body;
+  const { name, deep = false, categories = [] } = req.body;
   if (!name || typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ error: 'Nom de borne requis.' });
   }
@@ -85,12 +85,18 @@ app.post('/api/search-cabinet', async (req, res) => {
       : '';
     const wikiNote = wikiData ? `Source : ${wikiData.lang === 'fr' ? 'Wikipedia FR' : 'Wikipedia EN'} (${wikiData.title})` : 'Source : connaissances de Claude (aucune page Wikipedia trouvée)';
 
-    const jsonFormat = '{"width": <largeur en mètres>, "height": <hauteur en mètres>, "depth": <profondeur en mètres>, "weight": <poids en kg>, "notes": "<description>"}';
+    const catList = categories.length > 0 ? categories.join(', ') : null;
+    const catInstruction = catList
+      ? `Catégories disponibles : ${catList}. Choisis la plus appropriée. Si aucune ne convient, mets la meilleure approximation dans "category" ET le nom suggéré dans "suggestedNewCategory".`
+      : 'Aucune catégorie définie. Laisse "category" à null et "suggestedNewCategory" à null.';
+
+    const jsonFormat = `{"width": <m>, "height": <m>, "depth": <m>, "weight": <kg>, "category": "<catégorie ou null>", "suggestedNewCategory": <null ou "nom suggéré">, "notes": "<description>"}`;
 
     const promptSimple = `${wikiContext}Extrais les dimensions physiques extérieures et le poids de la borne d'arcade "${name.trim()}".
+${catInstruction}
 Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
 ${jsonFormat}
-Dans "notes", indique : ${wikiNote}. Si les données ne sont pas disponibles, estime et précise-le.`;
+Dans "notes" : ${wikiNote}.`;
 
     const promptDeep = `${wikiContext}Analyse approfondie de la borne d'arcade "${name.trim()}".
 ${wikiData ? 'Le texte Wikipedia ci-dessus contient les données de référence — utilise-les en priorité.' : 'Aucune source Wikipedia trouvée — utilise tes connaissances.'}
@@ -99,6 +105,7 @@ Raisonne étape par étape :
 2. Extrais les dimensions extérieures précises (largeur, hauteur, profondeur) en mètres
 3. Note le poids avec accessoires standards
 4. Indique niveau de confiance : ÉLEVÉ (source directe), MOYEN (source proche), FAIBLE (estimation)
+5. ${catInstruction}
 
 Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
 ${jsonFormat}
@@ -124,6 +131,8 @@ Dans "notes" : fabricant, variante, niveau de confiance, ${wikiNote}.`;
       height: typeof data.height === 'number' ? Math.round(data.height * 100) / 100 : null,
       depth:  typeof data.depth  === 'number' ? Math.round(data.depth  * 100) / 100 : null,
       weight: typeof data.weight === 'number' ? Math.round(data.weight) : null,
+      category: typeof data.category === 'string' && data.category !== 'null' ? data.category : null,
+      suggestedNewCategory: typeof data.suggestedNewCategory === 'string' && data.suggestedNewCategory !== 'null' ? data.suggestedNewCategory : null,
       notes:  typeof data.notes  === 'string' ? data.notes : '',
     };
     res.json(result);

@@ -6,15 +6,19 @@ import ResultsView from './components/ResultsView';
 import ManualEditor from './components/ManualEditor';
 import CabinetDirectory from './components/CabinetDirectory';
 import ContainerManager from './components/ContainerManager';
+import CategoryManager from './components/CategoryManager';
 import Header from './components/Header';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
+
+const DEFAULT_CATEGORIES = ['Candy', 'Gun Cab', 'Race Cab', 'Upright', 'Cocktail', 'Sit-Down', 'HD', 'Deluxe'];
 
 const TAB_DEFS = [
   { id: 'setup',      icon: '⚙',  label: 'Configuration' },
   { id: 'results',    icon: '📦', label: 'Résultats' },
   { id: 'manual',     icon: '✏',  label: 'Placement manuel' },
   { id: 'directory',  icon: '📋', label: 'Annuaire' },
+  { id: 'categories', icon: '🏷', label: 'Catégories' },
   { id: 'containers', icon: '🚛', label: 'Contenants' },
 ];
 const DEFAULT_TAB_ORDER = TAB_DEFS.map(t => t.id);
@@ -43,6 +47,7 @@ export default function App() {
   const [manualPlacements, setManualPlacements] = useState(() => loadSaved('al_manual', {}));
   const [directory, setDirectory] = useState(() => loadSaved('al_directory', []));
   const [containerTemplates, setContainerTemplates] = useState(() => loadSaved('al_containers', []));
+  const [categories, setCategories] = useState(() => loadSaved('al_categories', DEFAULT_CATEGORIES));
   const [tabOrder, setTabOrder] = useState(() => loadSaved('al_taborder', DEFAULT_TAB_ORDER));
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -56,6 +61,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('al_manual', JSON.stringify(manualPlacements)); }, [manualPlacements]);
   useEffect(() => { localStorage.setItem('al_directory', JSON.stringify(directory)); }, [directory]);
   useEffect(() => { localStorage.setItem('al_containers', JSON.stringify(containerTemplates)); }, [containerTemplates]);
+  useEffect(() => { localStorage.setItem('al_categories', JSON.stringify(categories)); }, [categories]);
   useEffect(() => { localStorage.setItem('al_taborder', JSON.stringify(tabOrder)); }, [tabOrder]);
 
   const handleReset = () => {
@@ -82,6 +88,10 @@ export default function App() {
     }]);
     setActiveTab('setup');
   }, [cabinets.length]);
+
+  const handleAddCategory = useCallback((cat) => {
+    setCategories(prev => prev.includes(cat) ? prev : [...prev, cat]);
+  }, []);
 
   const handleOptimize = useCallback(async () => {
     setLoading(true);
@@ -229,6 +239,15 @@ export default function App() {
           directory={directory}
           onDirectoryChange={setDirectory}
           onAddToConfig={handleAddFromDirectory}
+          categories={categories}
+          onAddCategory={handleAddCategory}
+        />
+      )}
+
+      {activeTab === 'categories' && (
+        <CategoryManager
+          categories={categories}
+          onCategoriesChange={setCategories}
         />
       )}
 
