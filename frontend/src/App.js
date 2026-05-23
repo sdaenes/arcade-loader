@@ -4,6 +4,8 @@ import CabinetPanel from './components/CabinetPanel';
 import TruckPanel from './components/TruckPanel';
 import ResultsView from './components/ResultsView';
 import ManualEditor from './components/ManualEditor';
+import CabinetDirectory from './components/CabinetDirectory';
+import ContainerManager from './components/ContainerManager';
 import Header from './components/Header';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
@@ -34,15 +36,19 @@ export default function App() {
   const [trucks, setTrucks] = useState(() => loadSaved('al_trucks', DEFAULT_TRUCKS));
   const [errorMargin, setErrorMargin] = useState(() => loadSaved('al_margin', 5));
   const [manualPlacements, setManualPlacements] = useState(() => loadSaved('al_manual', {}));
+  const [directory, setDirectory] = useState(() => loadSaved('al_directory', []));
+  const [containerTemplates, setContainerTemplates] = useState(() => loadSaved('al_containers', []));
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('setup'); // 'setup' | 'results' | 'manual'
+  const [activeTab, setActiveTab] = useState('setup'); // 'setup' | 'results' | 'manual' | 'directory' | 'containers'
 
   useEffect(() => { localStorage.setItem('al_cabinets', JSON.stringify(cabinets)); }, [cabinets]);
   useEffect(() => { localStorage.setItem('al_trucks', JSON.stringify(trucks)); }, [trucks]);
   useEffect(() => { localStorage.setItem('al_margin', JSON.stringify(errorMargin)); }, [errorMargin]);
   useEffect(() => { localStorage.setItem('al_manual', JSON.stringify(manualPlacements)); }, [manualPlacements]);
+  useEffect(() => { localStorage.setItem('al_directory', JSON.stringify(directory)); }, [directory]);
+  useEffect(() => { localStorage.setItem('al_containers', JSON.stringify(containerTemplates)); }, [containerTemplates]);
 
   const handleReset = () => {
     if (window.confirm('Réinitialiser toutes les valeurs aux valeurs par défaut ?')) {
@@ -52,6 +58,22 @@ export default function App() {
       setManualPlacements({});
     }
   };
+
+  const handleAddFromDirectory = useCallback((cab) => {
+    const COLORS = ['#00f5ff','#ff00aa','#aaff00','#ffaa00','#aa00ff','#ff5500','#00ffaa','#ff0055'];
+    const colorIdx = cabinets.length % COLORS.length;
+    setCabinets(prev => [...prev, {
+      id: 'cab_' + Math.random().toString(36).slice(2, 7),
+      name: cab.name || 'Borne',
+      width: cab.width || 0.65,
+      height: cab.height || 1.75,
+      depth: cab.depth || 0.75,
+      quantity: 1,
+      canTilt: false,
+      color: cab.color || COLORS[colorIdx],
+    }]);
+    setActiveTab('setup');
+  }, [cabinets.length]);
 
   const handleOptimize = useCallback(async () => {
     setLoading(true);
@@ -103,6 +125,20 @@ export default function App() {
         >
           <span className={styles.tabIcon}>✏</span> Placement manuel
         </button>
+        <button
+          className={`${styles.tab} ${activeTab === 'directory' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('directory')}
+        >
+          <span className={styles.tabIcon}>📋</span> Annuaire
+          {directory.length > 0 && <span className={styles.tabBadge}>{directory.length}</span>}
+        </button>
+        <button
+          className={`${styles.tab} ${activeTab === 'containers' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('containers')}
+        >
+          <span className={styles.tabIcon}>🚛</span> Contenants
+          {containerTemplates.length > 0 && <span className={styles.tabBadge}>{containerTemplates.length}</span>}
+        </button>
         <button className={styles.tabReset} onClick={handleReset} title="Réinitialiser aux valeurs par défaut">
           ↺ Reset
         </button>
@@ -114,7 +150,7 @@ export default function App() {
             <CabinetPanel cabinets={cabinets} onChange={setCabinets} />
           </div>
           <div className={styles.column}>
-            <TruckPanel trucks={trucks} onChange={setTrucks} />
+            <TruckPanel trucks={trucks} onChange={setTrucks} containerTemplates={containerTemplates} />
 
             <div className={styles.controlPanel}>
               <div className={styles.marginControl}>
@@ -179,6 +215,21 @@ export default function App() {
           trucks={trucks}
           allPlacements={manualPlacements}
           onPlacementsChange={setManualPlacements}
+        />
+      )}
+
+      {activeTab === 'directory' && (
+        <CabinetDirectory
+          directory={directory}
+          onDirectoryChange={setDirectory}
+          onAddToConfig={handleAddFromDirectory}
+        />
+      )}
+
+      {activeTab === 'containers' && (
+        <ContainerManager
+          containerTemplates={containerTemplates}
+          onContainerTemplatesChange={setContainerTemplates}
         />
       )}
     </div>

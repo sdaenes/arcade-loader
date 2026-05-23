@@ -3,16 +3,16 @@ import styles from './Panel.module.css';
 
 function genId() { return 'truck_' + Math.random().toString(36).slice(2, 7); }
 
-const PRESETS = [
+const BUILTIN_PRESETS = [
   { label: 'Fourgon 12m³', width: 2.1, height: 2.2, depth: 2.6 },
   { label: 'Camion 20m³', width: 2.4, height: 2.5, depth: 7.0 },
   { label: 'Camion 30m³', width: 2.4, height: 2.5, depth: 8.5 },
   { label: 'Semi 90m³', width: 2.4, height: 2.5, depth: 13.6 },
-  { label: 'Container 20\'', width: 2.35, height: 2.39, depth: 5.90 },
-  { label: 'Container 40\'', width: 2.35, height: 2.39, depth: 12.03 },
+  { label: "Container 20'", width: 2.35, height: 2.39, depth: 5.90 },
+  { label: "Container 40'", width: 2.35, height: 2.39, depth: 12.03 },
 ];
 
-function TruckRow({ truck, onChange, onDelete }) {
+function TruckRow({ truck, onChange, onDelete, presets }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -41,19 +41,31 @@ function TruckRow({ truck, onChange, onDelete }) {
           </div>
           <div>
             <label style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-dim)', display: 'block', marginBottom: '0.4rem' }}>
-              Preset rapide
+              Modèle rapide
             </label>
             <select
               defaultValue=""
               onChange={(e) => {
-                const p = PRESETS.find(pr => pr.label === e.target.value);
-                if (p) onChange({ ...truck, ...p });
+                const all = [...presets, ...BUILTIN_PRESETS];
+                const p = all.find(pr => pr.label === e.target.value);
+                if (p) onChange({ ...truck, width: p.width, height: p.height, depth: p.depth });
               }}
             >
-              <option value="">— Choisir un preset —</option>
-              {PRESETS.map(p => (
-                <option key={p.label} value={p.label}>{p.label} ({p.width}×{p.height}×{p.depth} m)</option>
-              ))}
+              <option value="">— Choisir un modèle —</option>
+              {presets.length > 0 && (
+                <optgroup label="Mes contenants">
+                  {presets.map(p => (
+                    <option key={p.id || p.label} value={p.label}>
+                      {p.label} ({p.width}×{p.height}×{p.depth} m)
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              <optgroup label="Modèles standards">
+                {BUILTIN_PRESETS.map(p => (
+                  <option key={p.label} value={p.label}>{p.label} ({p.width}×{p.height}×{p.depth} m)</option>
+                ))}
+              </optgroup>
             </select>
           </div>
           <div className={styles.dimsGrid}>
@@ -89,7 +101,7 @@ function TruckRow({ truck, onChange, onDelete }) {
   );
 }
 
-export default function TruckPanel({ trucks, onChange }) {
+export default function TruckPanel({ trucks, onChange, containerTemplates = [] }) {
   const handleChange = (idx, updated) => {
     const next = [...trucks];
     next[idx] = updated;
@@ -121,6 +133,7 @@ export default function TruckPanel({ trucks, onChange }) {
           <TruckRow
             key={truck.id}
             truck={truck}
+            presets={containerTemplates}
             onChange={(updated) => handleChange(i, updated)}
             onDelete={() => onChange(trucks.filter((_, j) => j !== i))}
           />
