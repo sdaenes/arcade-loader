@@ -48,7 +48,14 @@ export default function App() {
   const [directory, setDirectory] = useState(() => loadSaved('al_directory', []));
   const [containerTemplates, setContainerTemplates] = useState(() => loadSaved('al_containers', []));
   const [categories, setCategories] = useState(() => loadSaved('al_categories', DEFAULT_CATEGORIES));
-  const [tabOrder, setTabOrder] = useState(() => loadSaved('al_taborder', DEFAULT_TAB_ORDER));
+  const [tabOrder, setTabOrder] = useState(() => {
+    const saved = loadSaved('al_taborder', null);
+    if (!saved) return DEFAULT_TAB_ORDER;
+    const knownIds = TAB_DEFS.map(t => t.id);
+    const filtered = saved.filter(id => knownIds.includes(id));
+    const missing = knownIds.filter(id => !filtered.includes(id));
+    return [...filtered, ...missing];
+  });
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -65,11 +72,16 @@ export default function App() {
   useEffect(() => { localStorage.setItem('al_taborder', JSON.stringify(tabOrder)); }, [tabOrder]);
 
   const handleReset = () => {
-    if (window.confirm('Réinitialiser toutes les valeurs aux valeurs par défaut ?')) {
-      setCabinets(DEFAULT_CABINETS);
-      setTrucks(DEFAULT_TRUCKS);
+    if (window.confirm(
+      'Réinitialiser la configuration ?\n\n' +
+      'Les bornes et camions de l\'onglet Configuration seront effacés, ainsi que les placements manuels.\n' +
+      'L\'annuaire, les catégories et les contenants sont conservés.'
+    )) {
+      setCabinets([]);
+      setTrucks([]);
       setErrorMargin(5);
       setManualPlacements({});
+      setResults(null);
     }
   };
 
