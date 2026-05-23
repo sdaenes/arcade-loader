@@ -31,7 +31,7 @@ function Field({ label, value, onChange, type = 'text', unit }) {
   );
 }
 
-function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categories, onAddCategory }) {
+function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categories, onAddCategory, onDetails }) {
   const [expanded, setExpanded] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(null);
@@ -95,6 +95,13 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categ
           {cab.width && cab.height && cab.depth && (
             <span className={styles.cardDims}>{cab.width}×{cab.height}×{cab.depth} m</span>
           )}
+          <button
+            className={styles.detailsBtn}
+            onClick={(e) => { e.stopPropagation(); onDetails(cab); }}
+            title="Voir les détails"
+          >
+            Détails
+          </button>
           <span className={styles.chevron}>{expanded ? '▲' : '▼'}</span>
         </div>
       </div>
@@ -178,6 +185,7 @@ export default function CabinetDirectory({ directory, onDirectoryChange, onAddTo
   const dragIdx = useRef(null);
   const [sortBy, setSortBy] = useState('manual');
   const [filterCat, setFilterCat] = useState('');
+  const [detailsCab, setDetailsCab] = useState(null);
 
   const handleUpdate = (id, updated) => {
     onDirectoryChange(directory.map(c => c.id === id ? updated : c));
@@ -269,6 +277,7 @@ export default function CabinetDirectory({ directory, onDirectoryChange, onAddTo
               onUpdate={(updated) => handleUpdate(cab.id, updated)}
               onDelete={() => handleDelete(cab.id)}
               onAddToList={handleAddToConfig}
+              onDetails={setDetailsCab}
               dragHandlers={isDragEnabled ? {
                 draggable: true,
                 onDragStart: () => { dragIdx.current = origIdx; },
@@ -288,6 +297,47 @@ export default function CabinetDirectory({ directory, onDirectoryChange, onAddTo
       </div>
 
       <button className={styles.newBtn} onClick={handleAdd}>+ Ajouter une borne</button>
+
+      {detailsCab && (
+        <div className={styles.modalOverlay} onClick={() => setDetailsCab(null)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTitleRow}>
+                <h3 className={styles.modalTitle}>{detailsCab.name || '—'}</h3>
+                {detailsCab.category && (() => {
+                  const catObj = categories.find(c => c.name === detailsCab.category);
+                  const col = catObj?.color || '#888';
+                  return (
+                    <span className={styles.catBadge} style={{ color: col, borderColor: col + '66', background: col + '18' }}>
+                      {detailsCab.category}
+                    </span>
+                  );
+                })()}
+              </div>
+              <button className={styles.modalClose} onClick={() => setDetailsCab(null)}>✕</button>
+            </div>
+            <div className={styles.modalGrid}>
+              {[
+                { label: 'Largeur', value: detailsCab.width != null ? `${detailsCab.width} m` : '—' },
+                { label: 'Hauteur', value: detailsCab.height != null ? `${detailsCab.height} m` : '—' },
+                { label: 'Profondeur', value: detailsCab.depth != null ? `${detailsCab.depth} m` : '—' },
+                { label: 'Poids', value: detailsCab.weight != null ? `${detailsCab.weight} kg` : '—' },
+              ].map(({ label, value }) => (
+                <div key={label} className={styles.modalField}>
+                  <span className={styles.modalFieldLabel}>{label}</span>
+                  <span className={styles.modalFieldValue}>{value}</span>
+                </div>
+              ))}
+            </div>
+            {detailsCab.notes && (
+              <div>
+                <div className={styles.modalFieldLabel} style={{ marginBottom: '0.4rem' }}>Notes</div>
+                <p className={styles.modalNotes}>{detailsCab.notes}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

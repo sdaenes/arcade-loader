@@ -117,6 +117,27 @@ export default function App() {
     setActiveTab('setup');
   }, [cabinets.length]);
 
+  const handleAddCabinetToDirectory = useCallback((cab) => {
+    const COLORS = ['#00f5ff','#ff00aa','#aaff00','#ffaa00','#aa00ff','#ff5500','#00ffaa','#ff0055'];
+    setDirectory(prev => {
+      if (prev.some(d => d.name === cab.name)) {
+        window.alert(`"${cab.name}" est déjà dans l'annuaire.`);
+        return prev;
+      }
+      return [...prev, {
+        id: 'dir_' + Math.random().toString(36).slice(2, 8),
+        name: cab.name || '',
+        width: cab.width || null,
+        height: cab.height || null,
+        depth: cab.depth || null,
+        weight: null,
+        category: null,
+        notes: '',
+        color: COLORS[prev.length % COLORS.length],
+      }];
+    });
+  }, []);
+
   const handleAddCategory = useCallback((catName) => {
     setCategories(prev => {
       if (prev.some(c => c.name === catName)) return prev;
@@ -194,7 +215,7 @@ export default function App() {
       {activeTab === 'setup' && (
         <div className={styles.setupLayout}>
           <div className={styles.column}>
-            <CabinetPanel cabinets={cabinets} onChange={setCabinets} />
+            <CabinetPanel cabinets={cabinets} onChange={setCabinets} onAddToDirectory={handleAddCabinetToDirectory} />
           </div>
           <div className={styles.column}>
             <TruckPanel trucks={trucks} onChange={setTrucks} containerTemplates={containerTemplates} />

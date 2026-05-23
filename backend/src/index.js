@@ -6,32 +6,55 @@ const { optimizeLoading } = require('./optimizer');
 
 const anthropic = new Anthropic();
 
+function extractWikiParam(wikitext, paramNames) {
+  for (const param of paramNames) {
+    const regex = new RegExp('\\|\\s*' + param + '\\s*=\\s*([^\\n|{}]+)', 'i');
+    const match = wikitext.match(regex);
+    if (match) return match[1].trim();
+  }
+  return null;
+}
+
 async function searchArcadeOtaku(name) {
   try {
     const base = 'https://wiki.arcadeotaku.com/api.php';
     const searchRes = await fetch(
       `${base}?action=query&list=search&srsearch=${encodeURIComponent(name)}&format=json&srlimit=2`,
-      { headers: { 'User-Agent': 'ArcadeLoader/1.0' }, signal: AbortSignal.timeout(7000) }
+      { headers: { 'User-Agent': 'ArcadeLoader/1.0' }, signal: AbortSignal.timeout(5000) }
     );
     const searchData = await searchRes.json();
     const hits = searchData?.query?.search || [];
     if (hits.length === 0) return null;
 
     const title = hits[0].title;
-    const extractRes = await fetch(
-      `${base}?action=query&prop=extracts&titles=${encodeURIComponent(title)}&format=json&exlimit=1&exchars=6000`,
-      { headers: { 'User-Agent': 'ArcadeLoader/1.0' }, signal: AbortSignal.timeout(7000) }
-    );
-    const extractData = await extractRes.json();
-    const pages = extractData?.query?.pages || {};
-    const page = Object.values(pages)[0];
-    if (!page?.extract || page.extract.length < 80) return null;
+    const [wikitextRes, extractRes] = await Promise.all([
+      fetch(
+        `${base}?action=query&prop=revisions&rvprop=content&rvslots=main&titles=${encodeURIComponent(title)}&format=json`,
+        { headers: { 'User-Agent': 'ArcadeLoader/1.0' }, signal: AbortSignal.timeout(5000) }
+      ),
+      fetch(
+        `${base}?action=query&prop=extracts&titles=${encodeURIComponent(title)}&format=json&exlimit=1&exchars=3000`,
+        { headers: { 'User-Agent': 'ArcadeLoader/1.0' }, signal: AbortSignal.timeout(5000) }
+      ),
+    ]);
+    const [wikitextData, extractData] = await Promise.all([wikitextRes.json(), extractRes.json()]);
 
-    const text = page.extract
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-      .replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
-    return { title, text };
+    const wtPage = Object.values(wikitextData?.query?.pages || {})[0];
+    const wikitext = wtPage?.revisions?.[0]?.slots?.main?.['*'] || '';
+    const dimRaw = extractWikiParam(wikitext, ['dimensions', 'dimension', 'dim', 'size']);
+    const weightRaw = extractWikiParam(wikitext, ['weight', 'masse', 'poids']);
+
+    const exPage = Object.values(extractData?.query?.pages || {})[0];
+    const text = exPage?.extract
+      ? exPage.extract
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+          .replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
+          .slice(0, 2000)
+      : '';
+
+    if (!text && !dimRaw) return null;
+    return { title, text, dimRaw, weightRaw };
   } catch (_) { return null; }
 }
 
@@ -118,26 +141,43 @@ app.post('/api/search-cabinet', async (req, res) => {
       ? `Catégories disponibles : ${catList}. Choisis la plus appropriée. Si aucune ne convient, mets ta meilleure approximation dans "category" ET le nom suggéré dans "suggestedNewCategory".`
       : 'Aucune catégorie définie. Laisse "category" et "suggestedNewCategory" à null.';
 
-    const jsonFormat = `{"width": <m>, "height": <m>, "depth": <m>, "weight": <kg>, "category": "<catégorie ou null>", "suggestedNewCategory": <null ou "nom suggéré">, "notes": "<description générée par toi>"}`;
+    const jsonFormat = `{"width": <m>, "height": <m>, "depth": <m>, "weight": <kg>, "category": "<catégorie ou null>", "suggestedNewCategory": <null ou "nom suggéré">, "notes": "<description>"}`;
 
     const buildSourcesBlock = () => {
       const parts = [];
-      if (otakuData) parts.push(`=== ARCADE OTAKU (prioritaire pour dimensions/poids) ===\n${otakuData.text}`);
-      if (wikiData) parts.push(`=== WIKIPEDIA ${wikiData.lang.toUpperCase()} ===\n${wikiData.text}`);
+      if (otakuData) {
+        let section = `=== ARCADE OTAKU (source prioritaire) ===\nPage : "${otakuData.title}"`;
+        if (otakuData.dimRaw) section += `\nDimensions : ${otakuData.dimRaw}`;
+        if (otakuData.weightRaw) section += `\nPoids : ${otakuData.weightRaw}`;
+        if (otakuData.text) section += `\n\n${otakuData.text}`;
+        parts.push(section);
+      }
+      if (wikiData) parts.push(`=== WIKIPEDIA ${wikiData.lang.toUpperCase()} ===\nPage : "${wikiData.title}"\n${wikiData.text}`);
       return parts.length > 0
         ? `[SOURCES DISPONIBLES]\n\n${parts.join('\n\n')}\n\n`
         : '[AUCUNE SOURCE EXTERNE TROUVÉE — utilise tes connaissances]\n\n';
     };
 
     const sourcesBlock = buildSourcesBlock();
-    const hasSources = !!(otakuData || wikiData);
+
+    const dimSourceLabel = otakuData?.dimRaw
+      ? `Arcade Otaku — "${otakuData.title}"`
+      : wikiData
+      ? `Wikipedia ${wikiData.lang.toUpperCase()} — "${wikiData.title}"`
+      : 'estimation Claude';
+
+    const dimsRule = otakuData?.dimRaw
+      ? `DIMENSIONS & POIDS (PRIORITÉ ABSOLUE) : Arcade Otaku indique dimensions="${otakuData.dimRaw}"${otakuData.weightRaw ? ` et poids="${otakuData.weightRaw}"` : ''}. Convertis en mètres/kg et affecte correctement width/height/depth selon ta connaissance du modèle.`
+      : wikiData
+      ? 'DIMENSIONS & POIDS : Extrais depuis Wikipedia si disponibles, sinon utilise tes connaissances.'
+      : 'DIMENSIONS & POIDS : Utilise tes connaissances.';
 
     const commonInstructions = `Tu es un expert en bornes d'arcade. Pour la borne "${name.trim()}" :
 
 RÈGLES :
-- NOTES : Génère toi-même une description riche (fabricant, année, histoire, variantes, caractéristiques techniques). Ne copie pas le texte des sources brutes.
+- NOTES : 5 à 10 lignes maximum. Mentionne fabricant, année, type, caractéristiques principales, variantes notables. Termine obligatoirement par : "Source dimensions : ${dimSourceLabel}."
 - CATÉGORIE : ${catInstruction}
-- DIMENSIONS & POIDS : ${otakuData ? 'Utilise PRIORITAIREMENT les données Arcade Otaku.' : wikiData ? 'Utilise les données Wikipedia.' : 'Utilise tes connaissances.'} ${hasSources ? 'Indique la source dans "notes".' : ''}
+- ${dimsRule}
 
 Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
 ${jsonFormat}`;
@@ -153,7 +193,7 @@ Raisonne étape par étape :
 
     const requestParams = {
       model: 'claude-opus-4-7',
-      max_tokens: deep ? 4096 : 1024,
+      max_tokens: deep ? 2048 : 768,
       messages: [{ role: 'user', content: deep ? promptDeep : promptSimple }],
     };
     if (deep) requestParams.thinking = { type: 'adaptive' };

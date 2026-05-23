@@ -21,7 +21,7 @@ function numInput(value, field, onChange, cab, extra = {}) {
   );
 }
 
-function CabinetRow({ cabinet, onChange, onDelete, dragHandlers }) {
+function CabinetRow({ cabinet, onChange, onDelete, dragHandlers, onAddToDirectory }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -103,14 +103,21 @@ function CabinetRow({ cabinet, onChange, onDelete, dragHandlers }) {
               style={{ width: 'auto' }}
             />
           </div>
-          <button className={styles.deleteBtn} onClick={onDelete}>Supprimer</button>
+          <div className={styles.rowActions}>
+            {onAddToDirectory && (
+              <button className={styles.dirBtn} onClick={onAddToDirectory}>
+                → Ajouter à l'annuaire
+              </button>
+            )}
+            <button className={styles.deleteBtn} onClick={onDelete}>Supprimer</button>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-export default function CabinetPanel({ cabinets, onChange }) {
+export default function CabinetPanel({ cabinets, onChange, onAddToDirectory }) {
   const fileRef = useRef(null);
   const dragIdx = useRef(null);
 
@@ -231,6 +238,7 @@ export default function CabinetPanel({ cabinets, onChange }) {
             cabinet={cab}
             onChange={(updated) => handleChange(i, updated)}
             onDelete={() => handleDelete(i)}
+            onAddToDirectory={onAddToDirectory ? () => onAddToDirectory(cab) : null}
             dragHandlers={{
               draggable: true,
               onDragStart: () => { dragIdx.current = i; },
