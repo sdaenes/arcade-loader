@@ -35,7 +35,9 @@ export default function ManualEditor({ cabinets, trucks }) {
   );
 
   const cabCounts = cabinets.map(cab => {
-    const placed = placements.filter(p => p.cabId === cab.id).length;
+    const placed = Object.values(allPlacements).reduce(
+      (sum, tp) => sum + tp.filter(p => p.cabId === cab.id).length, 0
+    );
     return { ...cab, placed, remaining: (cab.quantity || 0) - placed };
   });
 
