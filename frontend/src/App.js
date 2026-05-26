@@ -144,13 +144,14 @@ export default function App() {
   }, []);
 
   const handleOptimize = useCallback(async (overrideTrucks) => {
+    const trucksToUse = Array.isArray(overrideTrucks) ? overrideTrucks : trucks;
     setLoading(true);
     setError(null);
     try {
       const response = await fetch(`${API_BASE}/api/optimize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cabinets, trucks: overrideTrucks || trucks, errorMargin }),
+        body: JSON.stringify({ cabinets, trucks: trucksToUse, errorMargin }),
       });
       if (!response.ok) {
         const err = await response.json();
