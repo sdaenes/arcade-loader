@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import styles from './Panel.module.css';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const COLORS = ['#00f5ff','#ff00aa','#aaff00','#ffaa00','#aa00ff','#ff5500','#00ffaa','#ff0055'];
 
@@ -23,12 +24,13 @@ function numInput(value, field, onChange, cab, extra = {}) {
 
 function CabinetRow({ cabinet, onChange, onDelete, dragHandlers, onAddToDirectory }) {
   const [expanded, setExpanded] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <div className={styles.itemCard} style={{ borderLeftColor: cabinet.color }} {...dragHandlers}>
       <div className={styles.itemHeader} onClick={() => setExpanded(!expanded)}>
         <div className={styles.itemHeaderLeft}>
-          <span className={styles.dragHandle} title="Glisser pour réordonner" onMouseDown={(e) => e.stopPropagation()}>⠿</span>
+          <span className={styles.dragHandle} title={t('common.drag')} onMouseDown={(e) => e.stopPropagation()}>⠿</span>
           <span className={styles.colorDot} style={{ background: cabinet.color }} />
           <span className={styles.itemName}>{cabinet.name}</span>
         </div>
@@ -44,14 +46,14 @@ function CabinetRow({ cabinet, onChange, onDelete, dragHandlers, onAddToDirector
       {expanded && (
         <div className={styles.itemBody}>
           <div className={styles.fieldRow}>
-            <label>Nom</label>
+            <label>{t('cabinet.field.name')}</label>
             <input
               value={cabinet.name}
               onChange={(e) => onChange({ ...cabinet, name: e.target.value })}
             />
           </div>
           <div className={styles.fieldRow}>
-            <label>Quantité</label>
+            <label>{t('cabinet.field.qty')}</label>
             <input
               type="number" min={0} max={999}
               value={cabinet.quantity}
@@ -63,26 +65,26 @@ function CabinetRow({ cabinet, onChange, onDelete, dragHandlers, onAddToDirector
           </div>
           <div className={styles.dimsGrid}>
             <div className={styles.fieldRow}>
-              <label>Largeur (m)</label>
+              <label>{t('cabinet.field.width')}</label>
               {numInput(cabinet.width, 'width', onChange, cabinet)}
             </div>
             <div className={styles.fieldRow}>
-              <label>Hauteur (m)</label>
+              <label>{t('cabinet.field.height')}</label>
               {numInput(cabinet.height, 'height', onChange, cabinet)}
             </div>
             <div className={styles.fieldRow}>
-              <label>Profondeur (m)</label>
+              <label>{t('cabinet.field.depth')}</label>
               {numInput(cabinet.depth, 'depth', onChange, cabinet)}
             </div>
           </div>
           <div className={styles.fieldRow}>
-            <label>Volume unitaire</label>
+            <label>{t('cabinet.field.vol')}</label>
             <span className={styles.computed}>
               {(cabinet.width * cabinet.height * cabinet.depth).toFixed(3)} m³
             </span>
           </div>
           <div className={styles.colorPicker}>
-            <label>Couleur</label>
+            <label>{t('cabinet.field.color')}</label>
             <div className={styles.colorSwatches}>
               {COLORS.map(c => (
                 <button
@@ -95,7 +97,7 @@ function CabinetRow({ cabinet, onChange, onDelete, dragHandlers, onAddToDirector
             </div>
           </div>
           <div className={styles.fieldRow}>
-            <label>Peut être inclinée ?</label>
+            <label>{t('cabinet.field.tilt')}</label>
             <input
               type="checkbox"
               checked={cabinet.canTilt}
@@ -106,10 +108,10 @@ function CabinetRow({ cabinet, onChange, onDelete, dragHandlers, onAddToDirector
           <div className={styles.rowActions}>
             {onAddToDirectory && (
               <button className={styles.dirBtn} onClick={onAddToDirectory}>
-                → Ajouter à l'annuaire
+                {t('cabinet.to.dir')}
               </button>
             )}
-            <button className={styles.deleteBtn} onClick={onDelete}>Supprimer</button>
+            <button className={styles.deleteBtn} onClick={onDelete}>{t('cabinet.delete')}</button>
           </div>
         </div>
       )}
@@ -120,6 +122,7 @@ function CabinetRow({ cabinet, onChange, onDelete, dragHandlers, onAddToDirector
 export default function CabinetPanel({ cabinets, onChange, onAddToDirectory }) {
   const fileRef = useRef(null);
   const dragIdx = useRef(null);
+  const { t } = useLanguage();
 
   const handleChange = (idx, updated) => {
     const next = [...cabinets];
@@ -135,7 +138,7 @@ export default function CabinetPanel({ cabinets, onChange, onAddToDirectory }) {
     const colorIdx = cabinets.length % COLORS.length;
     onChange([...cabinets, {
       id: genId(),
-      name: `Borne ${cabinets.length + 1}`,
+      name: t('cabinet.default.name', { n: cabinets.length + 1 }),
       width: 0.65, height: 1.75, depth: 0.75,
       quantity: 1,
       canTilt: false,
@@ -169,14 +172,13 @@ export default function CabinetPanel({ cabinets, onChange, onAddToDirectory }) {
 
     if (ext === 'csv') {
       const text = await file.text();
-      const rows = text.trim().split(/\r?\n/).slice(1); // skip header, handle CRLF
+      const rows = text.trim().split(/\r?\n/).slice(1);
       const imported = rows.map((row, i) => {
-        // strip surrounding quotes from each field (Excel CSV)
         const fields = row.split(/[,;]/).map(f => f.trim().replace(/^"|"$/g, ''));
         const [nom, largeur, hauteur, profondeur, quantite, inclinable, couleur] = fields;
         return {
           id: genId(),
-          name: nom || `Borne ${i + 1}`,
+          name: nom || t('cabinet.default.name', { n: i + 1 }),
           width: parseFloat(largeur) || 0.65,
           height: parseFloat(hauteur) || 1.75,
           depth: parseFloat(profondeur) || 0.75,
@@ -196,7 +198,7 @@ export default function CabinetPanel({ cabinets, onChange, onAddToDirectory }) {
         const nom = String(row['nom'] || row['Nom'] || row['name'] || '').trim();
         return {
           id: genId(),
-          name: nom || `Borne ${i + 1}`,
+          name: nom || t('cabinet.default.name', { n: i + 1 }),
           width: parseFloat(row['largeur'] || row['Largeur'] || row['width']) || 0.65,
           height: parseFloat(row['hauteur'] || row['Hauteur'] || row['height']) || 1.75,
           depth: parseFloat(row['profondeur'] || row['Profondeur'] || row['depth']) || 0.75,
@@ -216,17 +218,17 @@ export default function CabinetPanel({ cabinets, onChange, onAddToDirectory }) {
       <div className={styles.panelHeader}>
         <div className={styles.panelTitle}>
           <span className={styles.panelIcon}>🕹</span>
-          Bornes d'arcade
+          {t('cabinet.title')}
         </div>
-        <span className={styles.panelCount}>{totalUnits} unité{totalUnits > 1 ? 's' : ''}</span>
+        <span className={styles.panelCount}>{t('cabinet.units', { n: totalUnits })}</span>
       </div>
 
       <div className={styles.importBar}>
-        <button className={styles.importBtn} onClick={downloadTemplate} title="Télécharger le modèle CSV">
-          ↓ Modèle CSV
+        <button className={styles.importBtn} onClick={downloadTemplate} title={t('cabinet.csv.dl')}>
+          {t('cabinet.csv.dl')}
         </button>
-        <button className={styles.importBtn} onClick={() => fileRef.current?.click()} title="Importer CSV ou XLS">
-          ↑ Importer CSV/XLS
+        <button className={styles.importBtn} onClick={() => fileRef.current?.click()} title={t('cabinet.csv.import')}>
+          {t('cabinet.csv.import')}
         </button>
         <input ref={fileRef} type="file" accept=".csv,.xls,.xlsx" style={{ display: 'none' }} onChange={handleImport} />
       </div>
@@ -257,7 +259,7 @@ export default function CabinetPanel({ cabinets, onChange, onAddToDirectory }) {
       </div>
 
       <button className={styles.addBtn} onClick={handleAdd}>
-        + Ajouter une borne
+        {t('cabinet.add')}
       </button>
     </div>
   );

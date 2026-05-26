@@ -1,16 +1,18 @@
 import React, { useState, useRef } from 'react';
 import styles from './Panel.module.css';
+import { useLanguage } from '../i18n/LanguageContext';
 
 function genId() { return 'truck_' + Math.random().toString(36).slice(2, 7); }
 
 function TruckRow({ truck, onChange, onDelete, presets, dragHandlers }) {
   const [expanded, setExpanded] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <div className={styles.itemCard} style={{ borderLeftColor: '#ffaa00' }} {...dragHandlers}>
       <div className={styles.itemHeader} onClick={() => setExpanded(!expanded)}>
         <div className={styles.itemHeaderLeft}>
-          <span className={styles.dragHandle} title="Glisser pour réordonner">⠿</span>
+          <span className={styles.dragHandle} title={t('common.drag')}>⠿</span>
           <span className={styles.colorDot} style={{ background: '#ffaa00' }} />
           <span className={styles.itemName}>{truck.name}</span>
         </div>
@@ -28,12 +30,12 @@ function TruckRow({ truck, onChange, onDelete, presets, dragHandlers }) {
       {expanded && (
         <div className={styles.itemBody}>
           <div className={styles.fieldRow}>
-            <label>Nom</label>
+            <label>{t('truck.field.name')}</label>
             <input value={truck.name} onChange={(e) => onChange({ ...truck, name: e.target.value })} />
           </div>
           <div>
             <label style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-dim)', display: 'block', marginBottom: '0.4rem' }}>
-              Modèle rapide
+              {t('truck.field.preset')}
             </label>
             <select
               defaultValue=""
@@ -43,9 +45,9 @@ function TruckRow({ truck, onChange, onDelete, presets, dragHandlers }) {
                 if (p) onChange({ ...truck, width: p.width, height: p.height, depth: p.depth });
               }}
             >
-              <option value="">— Choisir un modèle —</option>
+              <option value="">{t('truck.preset.select')}</option>
               {presets.length === 0 && (
-                <option disabled value="">Aucun contenant défini (onglet Contenants)</option>
+                <option disabled value="">{t('truck.preset.none')}</option>
               )}
               {presets.map(p => {
                 const label = p.name || p.label;
@@ -59,31 +61,31 @@ function TruckRow({ truck, onChange, onDelete, presets, dragHandlers }) {
           </div>
           <div className={styles.dimsGrid}>
             <div className={styles.fieldRow}>
-              <label>Largeur (m)</label>
+              <label>{t('truck.field.width')}</label>
               <input type="number" step={0.01} min={0}
                 value={truck.width}
                 onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) onChange({ ...truck, width: v }); }} />
             </div>
             <div className={styles.fieldRow}>
-              <label>Hauteur (m)</label>
+              <label>{t('truck.field.height')}</label>
               <input type="number" step={0.01} min={0}
                 value={truck.height}
                 onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) onChange({ ...truck, height: v }); }} />
             </div>
             <div className={styles.fieldRow}>
-              <label>Profondeur (m)</label>
+              <label>{t('truck.field.depth')}</label>
               <input type="number" step={0.01} min={0}
                 value={truck.depth}
                 onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) onChange({ ...truck, depth: v }); }} />
             </div>
           </div>
           <div className={styles.fieldRow}>
-            <label>Volume total</label>
+            <label>{t('truck.field.vol')}</label>
             <span className={styles.computed}>
               {(truck.width * truck.height * truck.depth).toFixed(2)} m³
             </span>
           </div>
-          <button className={styles.deleteBtn} onClick={onDelete}>Supprimer</button>
+          <button className={styles.deleteBtn} onClick={onDelete}>{t('truck.delete')}</button>
         </div>
       )}
     </div>
@@ -92,6 +94,7 @@ function TruckRow({ truck, onChange, onDelete, presets, dragHandlers }) {
 
 export default function TruckPanel({ trucks, onChange, containerTemplates = [] }) {
   const dragIdx = useRef(null);
+  const { t } = useLanguage();
 
   const handleChange = (idx, updated) => {
     const next = [...trucks];
@@ -102,7 +105,7 @@ export default function TruckPanel({ trucks, onChange, containerTemplates = [] }
   const handleAdd = () => {
     onChange([...trucks, {
       id: genId(),
-      name: `Camion ${trucks.length + 1}`,
+      name: t('truck.default.name', { n: trucks.length + 1 }),
       width: 2.4, height: 2.5, depth: 7.0,
     }]);
   };
@@ -114,7 +117,7 @@ export default function TruckPanel({ trucks, onChange, containerTemplates = [] }
       <div className={styles.panelHeader}>
         <div className={styles.panelTitle}>
           <span className={styles.panelIcon}>🚛</span>
-          Camions / Containers
+          {t('truck.title')}
         </div>
         <span className={styles.panelCount}>{totalVol.toFixed(1)} m³ total</span>
       </div>
@@ -145,7 +148,7 @@ export default function TruckPanel({ trucks, onChange, containerTemplates = [] }
       </div>
 
       <button className={styles.addBtn} onClick={handleAdd}>
-        + Ajouter un camion / container
+        {t('truck.add')}
       </button>
     </div>
   );

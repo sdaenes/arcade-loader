@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import styles from './ManualEditor.module.css';
+import { useLanguage } from '../i18n/LanguageContext';
 
 function genId() { return 'mp_' + Math.random().toString(36).slice(2, 9); }
 
@@ -20,6 +21,7 @@ function fromCanvas(cx, cy, scale) {
 }
 
 export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacementsChange }) {
+  const { t } = useLanguage();
   const canvasRef = useRef(null);
   const [truckIdx, setTruckIdx] = useState(0);
   const [activeCabId, setActiveCabId] = useState(null); // cabinet type id being placed
@@ -137,9 +139,9 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
     ctx.fillStyle = 'rgba(255,170,0,0.8)';
     ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(`${truck.name}  |  ${truck.width}×${truck.depth} m  (vue de dessus)`, PADDING, H - 12);
-    ctx.fillText(`${placements.length} borne${placements.length > 1 ? 's' : ''} placée${placements.length > 1 ? 's' : ''}`, W - 160, H - 12);
-  }, [truck, placements, selectedId, activeCab]);
+    ctx.fillText(`${truck.name}  |  ${truck.width}×${truck.depth} m  (${t('manual.canvas.view')})`, PADDING, H - 12);
+    ctx.fillText(t('manual.canvas.placed', { n: placements.length }), W - 160, H - 12);
+  }, [truck, placements, selectedId, activeCab, t]);
 
   useEffect(() => { draw(); }, [draw]);
 
@@ -280,17 +282,14 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
   };
 
   const clearAll = () => {
-    if (window.confirm('Effacer tous les placements de ce camion ?')) {
+    if (window.confirm(t('manual.clear.confirm'))) {
       setPlacements([]);
       setSelectedId(null);
     }
   };
 
   const resetAllPlacements = () => {
-    if (window.confirm(
-      'Réinitialiser tous les placements manuels ?\n\n' +
-      'Tous les camions seront vidés. Cette action est irréversible.'
-    )) {
+    if (window.confirm(t('manual.reset.confirm'))) {
       onPlacementsChange({});
       setSelectedId(null);
     }
@@ -329,23 +328,23 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
       {/* Sidebar */}
       <div className={styles.sidebar}>
         <div className={styles.sideSection}>
-          <div className={styles.sideTitle}>Camion</div>
-          {trucks.map((t, i) => (
+          <div className={styles.sideTitle}>{t('manual.section.truck')}</div>
+          {trucks.map((tr, i) => (
             <button
-              key={t.id}
+              key={tr.id}
               className={`${styles.truckBtn} ${truckIdx === i ? styles.truckBtnActive : ''}`}
               onClick={() => { setTruckIdx(i); setSelectedId(null); setActiveCabId(null); }}
             >
-              🚛 {t.name}
-              <span className={styles.truckDim}>{t.width}×{t.depth} m</span>
+              🚛 {tr.name}
+              <span className={styles.truckDim}>{tr.width}×{tr.depth} m</span>
             </button>
           ))}
         </div>
 
         <div className={styles.sideSection}>
           <div className={styles.sideTitle}>
-            Bornes
-            <span className={styles.sideTip}>(cliquer pour placer)</span>
+            {t('manual.section.cabs')}
+            <span className={styles.sideTip}>{t('manual.section.cabs.tip')}</span>
           </div>
           {cabCounts.map(cab => (
             <button
@@ -365,36 +364,36 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
         </div>
 
         <div className={styles.sideSection}>
-          <div className={styles.sideTitle}>Actions</div>
+          <div className={styles.sideTitle}>{t('manual.section.actions')}</div>
           <button className={styles.actionBtn} onClick={rotateSelected} disabled={!selectedId}>
-            ↻ Pivoter (R)
+            {t('manual.rotate')}
           </button>
           <button className={`${styles.actionBtn} ${styles.actionDanger}`} onClick={deleteSelected} disabled={!selectedId}>
-            ✕ Supprimer (Del)
+            {t('manual.delete')}
           </button>
           <button className={`${styles.actionBtn} ${styles.actionDanger}`} onClick={clearAll}>
-            ⊘ Tout effacer
+            {t('manual.clear')}
           </button>
         </div>
 
         <div className={styles.sideSection}>
-          <div className={styles.sideTitle}>Export</div>
+          <div className={styles.sideTitle}>{t('manual.section.export')}</div>
           <button className={styles.actionBtn} onClick={exportJSON}>↓ JSON</button>
           <button className={styles.actionBtn} onClick={exportCSV}>↓ CSV</button>
         </div>
 
         <div className={styles.sideSection}>
-          <div className={styles.sideTitle}>Réinitialiser</div>
+          <div className={styles.sideTitle}>{t('manual.section.reset')}</div>
           <button className={`${styles.actionBtn} ${styles.actionDanger}`} onClick={resetAllPlacements}>
-            ⊘ Reset manuel complet
+            {t('manual.reset.all')}
           </button>
         </div>
 
         <div className={styles.sideLegend}>
-          <p>Cliquer = placer la borne sélectionnée</p>
-          <p>Glisser = déplacer une borne</p>
-          <p>R = pivoter • Échap = désélectionner</p>
-          <p>Suppr = effacer la sélection</p>
+          <p>{t('manual.legend.click')}</p>
+          <p>{t('manual.legend.drag')}</p>
+          <p>{t('manual.legend.r')}</p>
+          <p>{t('manual.legend.del')}</p>
         </div>
       </div>
 
@@ -402,7 +401,7 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
       <div className={styles.canvasWrap}>
         {activeCab && (
           <div className={styles.modeBanner} style={{ borderColor: activeCab.color, color: activeCab.color }}>
-            Mode placement : <strong>{activeCab.name}</strong> — Cliquer pour poser · Échap pour annuler
+            {t('manual.mode.banner', { name: activeCab.name })}
           </div>
         )}
         <canvas

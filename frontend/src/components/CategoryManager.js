@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
 import styles from './CategoryManager.module.css';
+import { useLanguage } from '../i18n/LanguageContext';
 
 function CategoryRow({ category, onUpdate, onDelete, dragHandlers }) {
   const [editing, setEditing] = useState(false);
   const [nameVal, setNameVal] = useState(category.name);
+  const { t } = useLanguage();
 
   const commit = () => {
     const trimmed = nameVal.trim();
@@ -14,12 +16,12 @@ function CategoryRow({ category, onUpdate, onDelete, dragHandlers }) {
 
   return (
     <div className={styles.row} {...dragHandlers}>
-      <span className={styles.dragHandle} title="Glisser pour réordonner">⠿</span>
+      <span className={styles.dragHandle} title={t('common.drag')}>⠿</span>
       <input
         type="color"
         className={styles.colorInput}
         value={category.color || '#888888'}
-        title="Changer la couleur"
+        title={t('cat.color.hint')}
         onChange={(e) => onUpdate({ ...category, color: e.target.value })}
       />
       {editing ? (
@@ -39,12 +41,12 @@ function CategoryRow({ category, onUpdate, onDelete, dragHandlers }) {
           className={styles.label}
           style={{ color: category.color }}
           onClick={() => setEditing(true)}
-          title="Cliquer pour renommer"
+          title={t('cat.rename.hint')}
         >
           {category.name}
         </span>
       )}
-      <button className={styles.deleteBtn} onClick={onDelete} title="Supprimer">✕</button>
+      <button className={styles.deleteBtn} onClick={onDelete} title="Supprimer">{t('cat.delete')}</button>
     </div>
   );
 }
@@ -53,6 +55,7 @@ export default function CategoryManager({ categories, onCategoriesChange }) {
   const [newCat, setNewCat] = useState('');
   const [newColor, setNewColor] = useState('#00f5ff');
   const dragIdx = useRef(null);
+  const { t } = useLanguage();
 
   const handleAdd = () => {
     const trimmed = newCat.trim();
@@ -78,19 +81,17 @@ export default function CategoryManager({ categories, onCategoriesChange }) {
         <div className={styles.headerLeft}>
           <span className={styles.headerIcon}>🏷</span>
           <div>
-            <h2 className={styles.headerTitle}>Catégories de bornes</h2>
-            <p className={styles.headerSub}>
-              Gérez les catégories utilisées dans l'annuaire. Cliquez sur un nom pour le renommer, sur la couleur pour la modifier.
-            </p>
+            <h2 className={styles.headerTitle}>{t('cat.title')}</h2>
+            <p className={styles.headerSub}>{t('cat.subtitle')}</p>
           </div>
         </div>
-        <span className={styles.count}>{categories.length} catégorie{categories.length !== 1 ? 's' : ''}</span>
+        <span className={styles.count}>{t('cat.count', { n: categories.length })}</span>
       </div>
 
       <div className={styles.body}>
         <div className={styles.list}>
           {categories.length === 0 && (
-            <div className={styles.empty}>Aucune catégorie définie. Ajoutez-en ci-dessous.</div>
+            <div className={styles.empty}>{t('cat.empty')}</div>
           )}
           {categories.map((cat, i) => (
             <CategoryRow
@@ -121,11 +122,11 @@ export default function CategoryManager({ categories, onCategoriesChange }) {
             className={styles.colorInput}
             value={newColor}
             onChange={(e) => setNewColor(e.target.value)}
-            title="Couleur de la nouvelle catégorie"
+            title={t('cat.color.hint')}
           />
           <input
             className={styles.addInput}
-            placeholder="Nouvelle catégorie…"
+            placeholder={t('cat.placeholder')}
             value={newCat}
             onChange={(e) => setNewCat(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
@@ -135,7 +136,7 @@ export default function CategoryManager({ categories, onCategoriesChange }) {
             onClick={handleAdd}
             disabled={!newCat.trim() || categories.some(c => c.name === newCat.trim())}
           >
-            + Ajouter
+            {t('cat.add')}
           </button>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import styles from './ContainerManager.module.css';
+import { useLanguage } from '../i18n/LanguageContext';
 
 function genId() { return 'ct_' + Math.random().toString(36).slice(2, 8); }
 
@@ -32,13 +33,14 @@ function NumField({ label, value, onChange }) {
 
 function ContainerCard({ container, onUpdate, onDelete, dragHandlers }) {
   const [expanded, setExpanded] = useState(false);
+  const { t } = useLanguage();
   const vol = (container.width * container.height * container.depth).toFixed(2);
 
   return (
     <div className={styles.card} {...dragHandlers}>
       <div className={styles.cardHeader} onClick={() => setExpanded(!expanded)}>
         <div className={styles.cardHeaderLeft}>
-          <span className={styles.dragHandle} title="Glisser pour réordonner">⠿</span>
+          <span className={styles.dragHandle} title={t('common.drag')}>⠿</span>
           <span className={styles.icon}>📦</span>
           <span className={styles.cardName}>{container.name || '—'}</span>
           <span className={styles.volBadge}>{vol} m³</span>
@@ -54,7 +56,7 @@ function ContainerCard({ container, onUpdate, onDelete, dragHandlers }) {
       {expanded && (
         <div className={styles.cardBody}>
           <div className={styles.field}>
-            <label className={styles.fieldLabel}>Nom</label>
+            <label className={styles.fieldLabel}>{t('ct.field.name')}</label>
             <input
               value={container.name}
               onChange={(e) => onUpdate({ ...container, name: e.target.value })}
@@ -62,7 +64,7 @@ function ContainerCard({ container, onUpdate, onDelete, dragHandlers }) {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.fieldLabel}>Modèle rapide</label>
+            <label className={styles.fieldLabel}>{t('ct.field.preset')}</label>
             <select
               defaultValue=""
               onChange={(e) => {
@@ -70,7 +72,7 @@ function ContainerCard({ container, onUpdate, onDelete, dragHandlers }) {
                 if (p) onUpdate({ ...container, ...p, name: container.name || p.label });
               }}
             >
-              <option value="">— Choisir un modèle —</option>
+              <option value="">{t('ct.preset.select')}</option>
               {FACTORY_PRESETS.map(p => (
                 <option key={p.label} value={p.label}>
                   {p.label} ({p.width}×{p.height}×{p.depth} m)
@@ -80,22 +82,22 @@ function ContainerCard({ container, onUpdate, onDelete, dragHandlers }) {
           </div>
 
           <div className={styles.dimsGrid}>
-            <NumField label="Largeur (m)" value={container.width}
+            <NumField label={t('ct.field.width')} value={container.width}
               onChange={(v) => onUpdate({ ...container, width: v })} />
-            <NumField label="Hauteur (m)" value={container.height}
+            <NumField label={t('ct.field.height')} value={container.height}
               onChange={(v) => onUpdate({ ...container, height: v })} />
-            <NumField label="Profondeur (m)" value={container.depth}
+            <NumField label={t('ct.field.depth')} value={container.depth}
               onChange={(v) => onUpdate({ ...container, depth: v })} />
           </div>
 
           <div className={styles.fieldRow}>
-            <label className={styles.fieldLabel}>Volume intérieur</label>
+            <label className={styles.fieldLabel}>{t('ct.field.vol')}</label>
             <span className={styles.computed}>{vol} m³</span>
           </div>
 
           {container.notes !== undefined && (
             <div className={styles.field}>
-              <label className={styles.fieldLabel}>Notes</label>
+              <label className={styles.fieldLabel}>{t('ct.field.notes')}</label>
               <textarea
                 className={styles.notes}
                 rows={2}
@@ -105,7 +107,7 @@ function ContainerCard({ container, onUpdate, onDelete, dragHandlers }) {
             </div>
           )}
 
-          <button className={styles.deleteBtn} onClick={onDelete}>Supprimer</button>
+          <button className={styles.deleteBtn} onClick={onDelete}>{t('ct.delete')}</button>
         </div>
       )}
     </div>
@@ -114,6 +116,7 @@ function ContainerCard({ container, onUpdate, onDelete, dragHandlers }) {
 
 export default function ContainerManager({ containerTemplates, onContainerTemplatesChange }) {
   const dragIdx = useRef(null);
+  const { t } = useLanguage();
 
   const handleUpdate = (idx, updated) => {
     const next = [...containerTemplates];
@@ -124,7 +127,7 @@ export default function ContainerManager({ containerTemplates, onContainerTempla
   const handleAdd = () => {
     onContainerTemplatesChange([...containerTemplates, {
       id: genId(),
-      name: `Contenant ${containerTemplates.length + 1}`,
+      name: t('ct.default.name', { n: containerTemplates.length + 1 }),
       width: 2.4,
       height: 2.5,
       depth: 7.0,
@@ -138,21 +141,17 @@ export default function ContainerManager({ containerTemplates, onContainerTempla
         <div className={styles.headerLeft}>
           <span className={styles.headerIcon}>🚛</span>
           <div>
-            <h2 className={styles.headerTitle}>Gestionnaire de contenants</h2>
-            <p className={styles.headerSub}>
-              Créez et gérez vos camions, containers et fourgons. Ils apparaîtront comme préréglages dans l'onglet Configuration.
-            </p>
+            <h2 className={styles.headerTitle}>{t('ct.title')}</h2>
+            <p className={styles.headerSub}>{t('ct.subtitle')}</p>
           </div>
         </div>
-        <span className={styles.count}>{containerTemplates.length} contenant{containerTemplates.length !== 1 ? 's' : ''}</span>
+        <span className={styles.count}>{t('ct.count', { n: containerTemplates.length })}</span>
       </div>
 
       <div className={styles.body}>
         <div className={styles.list}>
           {containerTemplates.length === 0 && (
-            <div className={styles.empty}>
-              Aucun contenant défini. Créez-en un ci-dessous, puis utilisez le menu "Modèle rapide" à l'intérieur pour appliquer des dimensions standard.
-            </div>
+            <div className={styles.empty}>{t('ct.empty')}</div>
           )}
           {containerTemplates.map((ct, i) => (
             <ContainerCard
@@ -178,7 +177,7 @@ export default function ContainerManager({ containerTemplates, onContainerTempla
         </div>
 
         <button className={styles.newBtn} onClick={handleAdd}>
-          + Créer un contenant
+          {t('ct.add')}
         </button>
       </div>
     </div>

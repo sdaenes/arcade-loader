@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import styles from './CabinetDirectory.module.css';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
 const COLORS = ['#00f5ff','#ff00aa','#aaff00','#ffaa00','#aa00ff','#ff5500','#00ffaa','#ff0055'];
@@ -35,6 +36,7 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categ
   const [expanded, setExpanded] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(null);
+  const { t, lang } = useLanguage();
 
   const doSearch = useCallback(async (deep) => {
     setSearching(deep ? 'deep' : 'quick');
@@ -43,7 +45,7 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categ
       const res = await fetch(`${API_BASE}/api/search-cabinet`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: cab.name, deep, categories: categories.map(c => c.name) }),
+        body: JSON.stringify({ name: cab.name, deep, categories: categories.map(c => c.name), lang }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erreur serveur');
@@ -51,7 +53,7 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categ
       if (
         data.suggestedNewCategory &&
         !categories.some(c => c.name === data.suggestedNewCategory) &&
-        window.confirm(`Claude propose d'ajouter la catégorie "${data.suggestedNewCategory}". L'ajouter à la liste ?`)
+        window.confirm(t('dir.suggest.cat', { name: data.suggestedNewCategory }))
       ) {
         onAddCategory(data.suggestedNewCategory);
       }
@@ -71,13 +73,13 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categ
     } finally {
       setSearching(false);
     }
-  }, [cab, onUpdate, categories, onAddCategory]);
+  }, [cab, onUpdate, categories, onAddCategory, t, lang]);
 
   return (
     <div className={styles.card} style={{ borderLeftColor: cab.color }} {...dragHandlers}>
       <div className={styles.cardHeader} onClick={() => setExpanded(!expanded)}>
         <div className={styles.cardHeaderLeft}>
-          <span className={styles.dragHandle} title="Glisser pour réordonner">⠿</span>
+          <span className={styles.dragHandle} title={t('common.drag')}>⠿</span>
           <span className={styles.dot} style={{ background: cab.color }} />
           <span className={styles.cardName}>{cab.name || '—'}</span>
           {cab.category && (() => {
@@ -98,9 +100,9 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categ
           <button
             className={styles.detailsBtn}
             onClick={(e) => { e.stopPropagation(); onDetails(cab); }}
-            title="Voir les détails"
+            title={t('dir.details')}
           >
-            Détails
+            {t('dir.details')}
           </button>
           <span className={styles.chevron}>{expanded ? '▲' : '▼'}</span>
         </div>
@@ -108,16 +110,16 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categ
 
       {expanded && (
         <div className={styles.cardBody}>
-          <Field label="Nom de la borne" value={cab.name}
+          <Field label={t('dir.field.name')} value={cab.name}
             onChange={(v) => onUpdate({ ...cab, name: v })} />
 
           <div className={styles.field}>
-            <label className={styles.fieldLabel}>Catégorie</label>
+            <label className={styles.fieldLabel}>{t('dir.field.category')}</label>
             <select
               value={cab.category || ''}
               onChange={(e) => onUpdate({ ...cab, category: e.target.value || null })}
             >
-              <option value="">— Non catégorisé —</option>
+              <option value="">{t('dir.uncategorized')}</option>
               {categories.map(cat => (
                 <option key={cat.name} value={cat.name}>{cat.name}</option>
               ))}
@@ -125,18 +127,18 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categ
           </div>
 
           <div className={styles.dimsGrid}>
-            <Field label="Largeur (m)" type="number" value={cab.width ?? ''} unit="m"
+            <Field label={t('dir.field.width')} type="number" value={cab.width ?? ''} unit="m"
               onChange={(v) => onUpdate({ ...cab, width: v })} />
-            <Field label="Hauteur (m)" type="number" value={cab.height ?? ''} unit="m"
+            <Field label={t('dir.field.height')} type="number" value={cab.height ?? ''} unit="m"
               onChange={(v) => onUpdate({ ...cab, height: v })} />
-            <Field label="Profondeur (m)" type="number" value={cab.depth ?? ''} unit="m"
+            <Field label={t('dir.field.depth')} type="number" value={cab.depth ?? ''} unit="m"
               onChange={(v) => onUpdate({ ...cab, depth: v })} />
-            <Field label="Poids (kg)" type="number" value={cab.weight ?? ''} unit="kg"
+            <Field label={t('dir.field.weight')} type="number" value={cab.weight ?? ''} unit="kg"
               onChange={(v) => onUpdate({ ...cab, weight: v })} />
           </div>
 
           <div className={styles.field}>
-            <label className={styles.fieldLabel}>Notes</label>
+            <label className={styles.fieldLabel}>{t('dir.field.notes')}</label>
             <textarea
               className={styles.notes}
               value={cab.notes || ''}
@@ -151,21 +153,21 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categ
             <button className={styles.searchBtn} onClick={() => doSearch(false)}
               disabled={!!searching || !cab.name.trim()}>
               {searching === 'quick'
-                ? <span className={styles.dots}>Recherche<span>.</span><span>.</span><span>.</span></span>
-                : '✦ Rechercher via Claude'}
+                ? <span className={styles.dots}>{t('dir.searching')}<span>.</span><span>.</span><span>.</span></span>
+                : t('dir.search.quick')}
             </button>
             <button className={styles.deepBtn} onClick={() => doSearch(true)}
               disabled={!!searching || !cab.name.trim()}>
               {searching === 'deep'
-                ? <span className={styles.dots}>Analyse<span>.</span><span>.</span><span>.</span></span>
-                : '⚡ Recherche approfondie'}
+                ? <span className={styles.dots}>{t('dir.analyzing')}<span>.</span><span>.</span><span>.</span></span>
+                : t('dir.search.deep')}
             </button>
             <button className={styles.addBtn}
               onClick={() => onAddToList(cab)}
               disabled={!cab.width || !cab.height || !cab.depth}>
-              + Ajouter à la config
+              {t('dir.add.config')}
             </button>
-            <button className={styles.deleteBtn} onClick={onDelete}>Supprimer</button>
+            <button className={styles.deleteBtn} onClick={onDelete}>{t('dir.delete')}</button>
           </div>
         </div>
       )}
@@ -173,19 +175,20 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categ
   );
 }
 
-const SORT_OPTIONS = [
-  { value: 'manual',   label: 'Ordre manuel' },
-  { value: 'name',     label: 'Nom A→Z' },
-  { value: 'category', label: 'Catégorie' },
-  { value: 'weight',   label: 'Poids ↑' },
-  { value: 'volume',   label: 'Volume L×l×H ↑' },
-];
-
 export default function CabinetDirectory({ directory, onDirectoryChange, onAddToConfig, categories = [], onAddCategory }) {
   const dragIdx = useRef(null);
   const [sortBy, setSortBy] = useState('manual');
   const [filterCat, setFilterCat] = useState('');
   const [detailsCab, setDetailsCab] = useState(null);
+  const { t } = useLanguage();
+
+  const SORT_OPTIONS = [
+    { value: 'manual',   label: t('dir.sort.manual') },
+    { value: 'name',     label: t('dir.sort.name') },
+    { value: 'category', label: t('dir.sort.category') },
+    { value: 'weight',   label: t('dir.sort.weight') },
+    { value: 'volume',   label: t('dir.sort.volume') },
+  ];
 
   const handleUpdate = (id, updated) => {
     onDirectoryChange(directory.map(c => c.id === id ? updated : c));
@@ -230,40 +233,36 @@ export default function CabinetDirectory({ directory, onDirectoryChange, onAddTo
         <div className={styles.headerLeft}>
           <span className={styles.headerIcon}>📋</span>
           <div>
-            <h2 className={styles.headerTitle}>Annuaire des bornes</h2>
-            <p className={styles.headerSub}>
-              Référencez vos bornes avec leurs dimensions. Claude peut les compléter automatiquement.
-            </p>
+            <h2 className={styles.headerTitle}>{t('dir.title')}</h2>
+            <p className={styles.headerSub}>{t('dir.subtitle')}</p>
           </div>
         </div>
-        <span className={styles.count}>{directory.length} borne{directory.length !== 1 ? 's' : ''}</span>
+        <span className={styles.count}>{t('dir.count', { n: directory.length })}</span>
       </div>
 
       <div className={styles.toolbar}>
         <div className={styles.toolbarGroup}>
-          <label className={styles.toolbarLabel}>Trier par</label>
+          <label className={styles.toolbarLabel}>{t('dir.sort.label')}</label>
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
             {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
         <div className={styles.toolbarGroup}>
-          <label className={styles.toolbarLabel}>Filtrer</label>
+          <label className={styles.toolbarLabel}>{t('dir.filter.label')}</label>
           <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)}>
-            <option value="">Toutes les catégories</option>
+            <option value="">{t('dir.filter.all')}</option>
             {categories.map(cat => <option key={cat.name} value={cat.name}>{cat.name}</option>)}
           </select>
         </div>
         {filterCat && (
-          <button className={styles.clearFilter} onClick={() => setFilterCat('')}>✕ Effacer le filtre</button>
+          <button className={styles.clearFilter} onClick={() => setFilterCat('')}>{t('dir.filter.clear')}</button>
         )}
       </div>
 
       <div className={styles.list}>
         {displayList.length === 0 && (
           <div className={styles.empty}>
-            {directory.length === 0
-              ? 'Aucune borne dans l\'annuaire. Cliquez sur "Ajouter une borne" pour commencer.'
-              : 'Aucune borne ne correspond au filtre sélectionné.'}
+            {directory.length === 0 ? t('dir.empty.dir') : t('dir.empty.filter')}
           </div>
         )}
         {displayList.map((cab) => {
@@ -296,7 +295,7 @@ export default function CabinetDirectory({ directory, onDirectoryChange, onAddTo
         })}
       </div>
 
-      <button className={styles.newBtn} onClick={handleAdd}>+ Ajouter une borne</button>
+      <button className={styles.newBtn} onClick={handleAdd}>{t('dir.new')}</button>
 
       {detailsCab && (
         <div className={styles.modalOverlay} onClick={() => setDetailsCab(null)}>
@@ -318,10 +317,10 @@ export default function CabinetDirectory({ directory, onDirectoryChange, onAddTo
             </div>
             <div className={styles.modalGrid}>
               {[
-                { label: 'Largeur', value: detailsCab.width != null ? `${detailsCab.width} m` : '—' },
-                { label: 'Hauteur', value: detailsCab.height != null ? `${detailsCab.height} m` : '—' },
-                { label: 'Profondeur', value: detailsCab.depth != null ? `${detailsCab.depth} m` : '—' },
-                { label: 'Poids', value: detailsCab.weight != null ? `${detailsCab.weight} kg` : '—' },
+                { label: t('dir.modal.width'),  value: detailsCab.width  != null ? `${detailsCab.width} m`  : '—' },
+                { label: t('dir.modal.height'), value: detailsCab.height != null ? `${detailsCab.height} m` : '—' },
+                { label: t('dir.modal.depth'),  value: detailsCab.depth  != null ? `${detailsCab.depth} m`  : '—' },
+                { label: t('dir.modal.weight'), value: detailsCab.weight != null ? `${detailsCab.weight} kg` : '—' },
               ].map(({ label, value }) => (
                 <div key={label} className={styles.modalField}>
                   <span className={styles.modalFieldLabel}>{label}</span>
@@ -331,7 +330,7 @@ export default function CabinetDirectory({ directory, onDirectoryChange, onAddTo
             </div>
             {detailsCab.notes && (
               <div>
-                <div className={styles.modalFieldLabel} style={{ marginBottom: '0.4rem' }}>Notes</div>
+                <div className={styles.modalFieldLabel} style={{ marginBottom: '0.4rem' }}>{t('dir.modal.notes')}</div>
                 <p className={styles.modalNotes}>{detailsCab.notes}</p>
               </div>
             )}

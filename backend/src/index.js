@@ -123,7 +123,7 @@ app.post('/api/optimize', (req, res) => {
 });
 
 app.post('/api/search-cabinet', async (req, res) => {
-  const { name, deep = false, categories = [] } = req.body;
+  const { name, deep = false, categories = [], lang = 'fr' } = req.body;
   if (!name || typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ error: 'Nom de borne requis.' });
   }
@@ -172,10 +172,16 @@ app.post('/api/search-cabinet', async (req, res) => {
       ? 'DIMENSIONS & POIDS : Extrais depuis Wikipedia si disponibles, sinon utilise tes connaissances.'
       : 'DIMENSIONS & POIDS : Utilise tes connaissances.';
 
+    const notesLangRule = lang === 'en'
+      ? `NOTES: 5-10 lines max. Include: manufacturer, year, type, key features, notable variants. End with: "Dimension source: ${dimSourceLabel}."`
+      : lang === 'ja'
+      ? `NOTES（日本語で記述）：5〜10行以内。メーカー、年、タイプ、主な特徴、主要なバリアントを含めること。最後に「寸法ソース：${dimSourceLabel}」と記載すること。`
+      : `NOTES : 5 à 10 lignes maximum. Mentionne fabricant, année, type, caractéristiques principales, variantes notables. Termine obligatoirement par : "Source dimensions : ${dimSourceLabel}."`;
+
     const commonInstructions = `Tu es un expert en bornes d'arcade. Pour la borne "${name.trim()}" :
 
 RÈGLES :
-- NOTES : 5 à 10 lignes maximum. Mentionne fabricant, année, type, caractéristiques principales, variantes notables. Termine obligatoirement par : "Source dimensions : ${dimSourceLabel}."
+- ${notesLangRule}
 - CATÉGORIE : ${catInstruction}
 - ${dimsRule}
 

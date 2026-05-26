@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import styles from './App.module.css';
+import { useLanguage } from './i18n/LanguageContext';
 import CabinetPanel from './components/CabinetPanel';
 import TruckPanel from './components/TruckPanel';
 import ResultsView from './components/ResultsView';
@@ -24,12 +25,12 @@ const DEFAULT_CATEGORIES = [
 const CAT_COLORS = ['#00f5ff','#ff00aa','#aaff00','#ffaa00','#aa00ff','#ff5500','#00ffaa','#ff0055'];
 
 const TAB_DEFS = [
-  { id: 'setup',      icon: '⚙',  label: 'Configuration' },
-  { id: 'results',    icon: '📦', label: 'Résultats' },
-  { id: 'manual',     icon: '✏',  label: 'Placement manuel' },
-  { id: 'directory',  icon: '📋', label: 'Annuaire' },
-  { id: 'categories', icon: '🏷', label: 'Catégories' },
-  { id: 'containers', icon: '🚛', label: 'Contenants' },
+  { id: 'setup',      icon: '⚙'  },
+  { id: 'results',    icon: '📦' },
+  { id: 'manual',     icon: '✏'  },
+  { id: 'directory',  icon: '📋' },
+  { id: 'categories', icon: '🏷' },
+  { id: 'containers', icon: '🚛' },
 ];
 const DEFAULT_TAB_ORDER = TAB_DEFS.map(t => t.id);
 
@@ -51,6 +52,7 @@ function loadSaved(key, fallback) {
 }
 
 export default function App() {
+  const { t } = useLanguage();
   const [cabinets, setCabinets] = useState(() => loadSaved('al_cabinets', DEFAULT_CABINETS));
   const [trucks, setTrucks] = useState(() => loadSaved('al_trucks', DEFAULT_TRUCKS));
   const [errorMargin, setErrorMargin] = useState(() => loadSaved('al_margin', 5));
@@ -89,11 +91,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('al_taborder', JSON.stringify(tabOrder)); }, [tabOrder]);
 
   const handleReset = () => {
-    if (window.confirm(
-      'Réinitialiser la configuration ?\n\n' +
-      'Les bornes et camions de l\'onglet Configuration seront effacés.\n' +
-      'L\'annuaire, les catégories, les contenants et les placements manuels sont conservés.'
-    )) {
+    if (window.confirm(t('app.reset.confirm'))) {
       setCabinets([]);
       setTrucks([]);
       setErrorMargin(5);
@@ -121,7 +119,7 @@ export default function App() {
     const COLORS = ['#00f5ff','#ff00aa','#aaff00','#ffaa00','#aa00ff','#ff5500','#00ffaa','#ff0055'];
     setDirectory(prev => {
       if (prev.some(d => d.name === cab.name)) {
-        window.alert(`"${cab.name}" est déjà dans l'annuaire.`);
+        window.alert(t('cabinet.to.dir.exists', { name: cab.name }));
         return prev;
       }
       return [...prev, {
@@ -136,7 +134,7 @@ export default function App() {
         color: COLORS[prev.length % COLORS.length],
       }];
     });
-  }, []);
+  }, [t]);
 
   const handleAddCategory = useCallback((catName) => {
     setCategories(prev => {
@@ -177,7 +175,7 @@ export default function App() {
 
       <div className={styles.tabs}>
         {tabOrder.map((tabId, i) => {
-          const def = TAB_DEFS.find(t => t.id === tabId);
+          const def = TAB_DEFS.find(td => td.id === tabId);
           if (!def) return null;
           const isDisabled = tabId === 'results' && !results;
           let badge = null;
@@ -202,13 +200,13 @@ export default function App() {
               }}
             >
               <span className={styles.tabIcon}>{def.icon}</span>
-              {def.label}
+              {t(`tab.${tabId}`)}
               {badge !== null && <span className={styles.tabBadge}>{badge}</span>}
             </button>
           );
         })}
-        <button className={styles.tabReset} onClick={handleReset} title="Réinitialiser aux valeurs par défaut">
-          ↺ Reset Configuration
+        <button className={styles.tabReset} onClick={handleReset} title={t('app.reset.btn')}>
+          {t('app.reset.btn')}
         </button>
       </div>
 
@@ -223,7 +221,7 @@ export default function App() {
             <div className={styles.controlPanel}>
               <div className={styles.marginControl}>
                 <div className={styles.marginHeader}>
-                  <label className={styles.marginLabel}>Marge d'erreur</label>
+                  <label className={styles.marginLabel}>{t('app.margin.label')}</label>
                   <span className={styles.marginValue}>{errorMargin}%</span>
                 </div>
                 <input
@@ -235,22 +233,20 @@ export default function App() {
                   onChange={(e) => setErrorMargin(Number(e.target.value))}
                   className={styles.slider}
                 />
-                <p className={styles.marginHint}>
-                  Réduit l'espace utilisable de {errorMargin}% pour tenir compte des imprévus, sangles, protections...
-                </p>
+                <p className={styles.marginHint}>{t('app.margin.hint', { n: errorMargin })}</p>
               </div>
 
               <div className={styles.summary}>
                 <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>Bornes totales</span>
+                  <span className={styles.summaryLabel}>{t('app.summary.cabinets')}</span>
                   <span className={styles.summaryValue}>{totalCabinets}</span>
                 </div>
                 <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>Camions</span>
+                  <span className={styles.summaryLabel}>{t('app.summary.trucks')}</span>
                   <span className={styles.summaryValue}>{trucks.length}</span>
                 </div>
                 <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>Volume total</span>
+                  <span className={styles.summaryLabel}>{t('app.summary.volume')}</span>
                   <span className={styles.summaryValue}>{totalTruckVolume.toFixed(1)} m³</span>
                 </div>
               </div>
@@ -263,9 +259,9 @@ export default function App() {
                 disabled={loading || cabinets.length === 0 || trucks.length === 0}
               >
                 {loading ? (
-                  <span className={styles.loadingDots}>Calcul en cours<span>.</span><span>.</span><span>.</span></span>
+                  <span className={styles.loadingDots}>{t('app.calculating')}<span>.</span><span>.</span><span>.</span></span>
                 ) : (
-                  '🎮 OPTIMISER LE CHARGEMENT'
+                  t('app.optimize')
                 )}
               </button>
             </div>
