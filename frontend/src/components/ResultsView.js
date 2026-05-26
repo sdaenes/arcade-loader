@@ -3,10 +3,11 @@ import styles from './ResultsView.module.css';
 import Viewer3D from './Viewer3D';
 import { useLanguage } from '../i18n/LanguageContext';
 
-function FillBar({ rate }) {
+function FillBar({ rate, label }) {
   const color = rate > 80 ? '#00ff88' : rate > 50 ? '#ffaa00' : '#ff3355';
   return (
     <div className={styles.fillBar}>
+      {label && <span className={styles.fillBarUnit}>{label}</span>}
       <div className={styles.fillTrack}>
         <div
           className={styles.fillFill}
@@ -132,7 +133,8 @@ export default function ResultsView({ results, trucks, loading, onBack, onOptimi
               <div className={styles.truckTabName}>🚛 {truck.truckName}</div>
               <div className={styles.truckTabInfo}>
                 <span className={styles.truckTabCount}>{t('results.cab.count', { n: truck.cabinetCount })}</span>
-                <FillBar rate={truck.fillRate} />
+                <FillBar rate={truck.fillRate} label="m³" />
+                <FillBar rate={truck.fillRateArea} label="m²" />
               </div>
             </button>
           ))}
@@ -148,6 +150,9 @@ export default function ResultsView({ results, trucks, loading, onBack, onOptimi
               </span>
               <span className={styles.truckVolume}>
                 {activeTruck.usedVolume} / {activeTruck.totalVolume} m³ — <strong>{activeTruck.fillRate}%</strong>
+              </span>
+              <span className={styles.truckArea}>
+                {activeTruck.usedArea} / {activeTruck.totalArea} m² — <strong>{activeTruck.fillRateArea}%</strong>
               </span>
             </div>
           </div>

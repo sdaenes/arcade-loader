@@ -199,6 +199,8 @@ function expandCabinets(cabinets) {
 function buildTruckResult(truck, placements) {
   const usedVolume = placements.reduce((s, p) => s + p.width * p.height * p.depth, 0);
   const totalVolume = truck.usableWidth * truck.usableHeight * truck.usableDepth;
+  const usedArea   = placements.reduce((s, p) => s + p.width * p.depth, 0);
+  const totalArea  = truck.usableWidth * truck.usableDepth;
   return {
     truckId:      truck.id,
     truckName:    truck.name,
@@ -207,6 +209,9 @@ function buildTruckResult(truck, placements) {
     usedVolume:   Math.round(usedVolume * 1000) / 1000,
     totalVolume:  Math.round(totalVolume * 1000) / 1000,
     fillRate:     Math.round((usedVolume / totalVolume) * 1000) / 10,
+    usedArea:     Math.round(usedArea * 100) / 100,
+    totalArea:    Math.round(totalArea * 100) / 100,
+    fillRateArea: totalArea > 0 ? Math.round((usedArea / totalArea) * 1000) / 10 : 0,
     dimensions: {
       width:         truck.usableWidth,
       height:        truck.usableHeight,
