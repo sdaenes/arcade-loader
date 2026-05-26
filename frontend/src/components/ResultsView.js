@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './ResultsView.module.css';
 import Viewer3D from './Viewer3D';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -21,12 +21,11 @@ function FillBar({ rate, label }) {
 
 export default function ResultsView({ results, trucks, loading, onBack, onOptimizeTighter }) {
   const [selectedTruck, setSelectedTruck] = useState(0);
+  const [localMargin, setLocalMargin] = useState(results.errorMargin);
   const { t } = useLanguage();
   const activeTruck = results.trucks[selectedTruck];
 
-  const currentMargin = results.errorMargin;
-  const suggestedMargin = Math.max(-15, currentMargin - 5);
-  const canOptimize = results.unplacedCabinets > 0 && suggestedMargin < currentMargin;
+  useEffect(() => { setLocalMargin(results.errorMargin); }, [results.errorMargin]);
 
   const exportData = () => {
     const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
@@ -100,18 +99,31 @@ export default function ResultsView({ results, trucks, loading, onBack, onOptimi
         </div>
       )}
 
-      {canOptimize && (
-        <div className={styles.optimizeHint}>
-          <span>{t('results.optimize.hint', { n: results.unplacedCabinets })}</span>
+      <div className={styles.reoptimizePanel}>
+        <div className={styles.reoptimizeHeader}>
+          <div className={styles.reoptimizeLeft}>
+            <span className={styles.marginLabel}>{t('app.margin.label')}</span>
+            <span className={styles.marginValue}>{localMargin > 0 ? '+' : ''}{localMargin}%</span>
+          </div>
           <button
-            className={styles.optimizeHintBtn}
-            onClick={() => onOptimizeTighter(suggestedMargin)}
+            className={styles.reoptimizeBtn}
+            onClick={() => onOptimizeTighter(localMargin)}
             disabled={loading}
           >
-            {t('results.optimize.btn', { m: suggestedMargin })}
+            {loading ? '…' : t('results.reoptimize.btn')}
           </button>
         </div>
-      )}
+        <input
+          type="range"
+          min={-10}
+          max={30}
+          step={1}
+          value={localMargin}
+          onChange={(e) => setLocalMargin(Number(e.target.value))}
+          className={styles.marginSlider}
+        />
+        <p className={styles.marginHint}>{t('app.margin.hint', { n: localMargin })}</p>
+      </div>
 
       {results.unplacedCabinets > 0 && (
         <div className={styles.unplaced}>

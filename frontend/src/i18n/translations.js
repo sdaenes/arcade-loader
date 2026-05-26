@@ -151,6 +151,7 @@ export const translations = {
     'results.csv.depth':   'Profondeur',
     'results.optimize.hint': ({ n }) => `${n} borne${n > 1 ? 's' : ''} non placée${n > 1 ? 's' : ''}. Réduire la marge pour autoriser un emboîtement léger ?`,
     'results.optimize.btn':  ({ m }) => `Réessayer — marge ${m > 0 ? '+' : ''}${m}%`,
+    'results.reoptimize.btn': '↻ Relancer',
 
     // Manual Editor
     'manual.section.truck':    'Camion',
@@ -314,6 +315,7 @@ export const translations = {
     'results.csv.depth':   'Depth',
     'results.optimize.hint': ({ n }) => `${n} cabinet${n !== 1 ? 's' : ''} could not be placed. Try a tighter margin to allow slight interlocking?`,
     'results.optimize.btn':  ({ m }) => `Retry — margin ${m > 0 ? '+' : ''}${m}%`,
+    'results.reoptimize.btn': '↻ Re-run',
 
     'manual.section.truck':    'Truck',
     'manual.section.cabs':     'Cabinets',
@@ -476,6 +478,7 @@ export const translations = {
     'results.csv.depth':   '奥行き',
     'results.optimize.hint': ({ n }) => `${n}台の筐体が未配置です。マージンを下げて軽微な嵌め合いを許容しますか？`,
     'results.optimize.btn':  ({ m }) => `再試行 — マージン${m > 0 ? '+' : ''}${m}%`,
+    'results.reoptimize.btn': '↻ 再実行',
 
     'manual.section.truck':    'トラック',
     'manual.section.cabs':     '筐体',
