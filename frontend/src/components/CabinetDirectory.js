@@ -32,7 +32,8 @@ function Field({ label, value, onChange, type = 'text', unit }) {
   );
 }
 
-function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categories, onAddCategory, onDetails }) {
+function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers = {}, categories, onAddCategory, onDetails }) {
+  const { draggable: isDraggable, onDragStart, ...dropHandlers } = dragHandlers;
   const [expanded, setExpanded] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(null);
@@ -76,10 +77,16 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers, categ
   }, [cab, onUpdate, categories, onAddCategory, t, lang]);
 
   return (
-    <div className={styles.card} style={{ borderLeftColor: cab.color }} {...dragHandlers}>
+    <div className={styles.card} style={{ borderLeftColor: cab.color }} {...dropHandlers}>
       <div className={styles.cardHeader} onClick={() => setExpanded(!expanded)}>
         <div className={styles.cardHeaderLeft}>
-          <span className={styles.dragHandle} title={t('common.drag')}>⠿</span>
+          <span
+            className={styles.dragHandle}
+            draggable={isDraggable}
+            onDragStart={onDragStart}
+            onClick={(e) => e.stopPropagation()}
+            title={t('common.drag')}
+          >⠿</span>
           <span className={styles.dot} style={{ background: cab.color }} />
           <span className={styles.cardName}>{cab.name || '—'}</span>
           {cab.category && (() => {

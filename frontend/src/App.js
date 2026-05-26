@@ -281,24 +281,26 @@ export default function App() {
         </div>
       )}
 
-      {activeTab === 'results' && results && (
-        <ResultsView
-          results={results}
-          trucks={trucks}
-          loading={loading}
-          onBack={() => setActiveTab('setup')}
-          onOptimizeTighter={(m) => { setErrorMargin(m); handleOptimize(undefined, m); }}
-        />
+      {results && (
+        <div style={{ display: activeTab === 'results' ? undefined : 'none' }}>
+          <ResultsView
+            results={results}
+            trucks={trucks}
+            loading={loading}
+            onBack={() => setActiveTab('setup')}
+            onOptimizeTighter={(m) => { setErrorMargin(m); handleOptimize(undefined, m); }}
+          />
+        </div>
       )}
 
-      {activeTab === 'manual' && (
+      <div style={{ display: activeTab === 'manual' ? undefined : 'none' }}>
         <ManualEditor
           cabinets={cabinets}
           trucks={trucks}
           allPlacements={manualPlacements}
           onPlacementsChange={setManualPlacements}
         />
-      )}
+      </div>
 
       {activeTab === 'directory' && (
         <CabinetDirectory
