@@ -4,7 +4,7 @@ const pJa = (n, unit) => `${n}${unit}`;
 export const translations = {
   fr: {
     // Tabs
-    'tab.setup':      'Configuration',
+    'tab.setup':      'Chargement',
     'tab.results':    'Résultats',
     'tab.manual':     'Placement manuel',
     'tab.directory':  'Annuaire',
@@ -13,7 +13,7 @@ export const translations = {
 
     // App
     'app.reset.btn':          '↺ Reset Configuration',
-    'app.reset.confirm':      'Réinitialiser la configuration ?\n\nLes bornes et camions de l\'onglet Configuration seront effacés.\nL\'annuaire, les catégories, les contenants et les placements manuels sont conservés.',
+    'app.reset.confirm':      'Réinitialiser le chargement ?\n\nLes bornes et camions de l\'onglet Chargement seront effacés.\nL\'annuaire, les catégories, les contenants et les placements manuels sont conservés.',
     'app.summary.cabinets':   'Bornes totales',
     'app.summary.trucks':     'Camions',
     'app.summary.volume':     'Volume total',
@@ -111,7 +111,7 @@ export const translations = {
 
     // Container Manager
     'ct.title':            'Gestionnaire de contenants',
-    'ct.subtitle':         'Créez et gérez vos camions, containers et fourgons. Ils apparaîtront comme préréglages dans l\'onglet Configuration.',
+    'ct.subtitle':         'Créez et gérez vos camions, containers et fourgons. Ils apparaîtront comme préréglages dans l\'onglet Chargement.',
     'ct.count':            ({ n }) => p(n, 'contenant', 'contenants'),
     'ct.empty':            'Aucun contenant défini. Créez-en un ci-dessous, puis utilisez le menu "Modèle rapide" à l\'intérieur pour appliquer des dimensions standard.',
     'ct.field.name':       'Nom',
@@ -173,7 +173,7 @@ export const translations = {
   },
 
   en: {
-    'tab.setup':      'Configuration',
+    'tab.setup':      'Loading',
     'tab.results':    'Results',
     'tab.manual':     'Manual Placement',
     'tab.directory':  'Directory',
@@ -181,7 +181,7 @@ export const translations = {
     'tab.containers': 'Containers',
 
     'app.reset.btn':          '↺ Reset Config',
-    'app.reset.confirm':      'Reset the configuration?\n\nCabinets and trucks in the Configuration tab will be cleared.\nThe directory, categories, containers and manual placements are kept.',
+    'app.reset.confirm':      'Reset the loading plan?\n\nCabinets and trucks in the Loading tab will be cleared.\nThe directory, categories, containers and manual placements are kept.',
     'app.summary.cabinets':   'Total cabinets',
     'app.summary.trucks':     'Trucks',
     'app.summary.volume':     'Total volume',
@@ -273,7 +273,7 @@ export const translations = {
     'cat.add':             '+ Add',
 
     'ct.title':            'Container Manager',
-    'ct.subtitle':         'Create and manage your trucks, containers and vans. They will appear as presets in the Configuration tab.',
+    'ct.subtitle':         'Create and manage your trucks, containers and vans. They will appear as presets in the Loading tab.',
     'ct.count':            ({ n }) => p(n, 'container', 'containers'),
     'ct.empty':            'No container defined. Create one below, then use the "Quick preset" menu inside to apply standard dimensions.',
     'ct.field.name':       'Name',
@@ -333,15 +333,15 @@ export const translations = {
   },
 
   ja: {
-    'tab.setup':      '設定',
+    'tab.setup':      '積載',
     'tab.results':    '結果',
     'tab.manual':     '手動配置',
     'tab.directory':  '筐体リスト',
     'tab.categories': 'カテゴリ',
     'tab.containers': 'コンテナ管理',
 
-    'app.reset.btn':          '↺ 設定をリセット',
-    'app.reset.confirm':      '設定をリセットしますか？\n\n設定タブの筐体とトラックが消去されます。\nリスト、カテゴリ、コンテナ、手動配置は保持されます。',
+    'app.reset.btn':          '↺ 積載をリセット',
+    'app.reset.confirm':      '積載をリセットしますか？\n\n積載タブの筐体とトラックが消去されます。\nリスト、カテゴリ、コンテナ、手動配置は保持されます。',
     'app.summary.cabinets':   '筐体合計',
     'app.summary.trucks':     'トラック',
     'app.summary.volume':     '総容積',
@@ -411,7 +411,7 @@ export const translations = {
     'dir.search.deep':     '⚡ 詳細検索',
     'dir.searching':       '検索中',
     'dir.analyzing':       '分析中',
-    'dir.add.config':      '+ 設定に追加',
+    'dir.add.config':      '+ 積載に追加',
     'dir.delete':          '削除',
     'dir.details':         '詳細',
     'dir.new':             '+ 筐体を追加',
@@ -433,7 +433,7 @@ export const translations = {
     'cat.add':             '+ 追加',
 
     'ct.title':            'コンテナ管理',
-    'ct.subtitle':         'トラック、コンテナ、バンを作成・管理します。設定タブのプリセットに表示されます。',
+    'ct.subtitle':         'トラック、コンテナ、バンを作成・管理します。積載タブのプリセットに表示されます。',
     'ct.count':            ({ n }) => pJa(n, 'コンテナ'),
     'ct.empty':            'コンテナが定義されていません。以下で作成し、内部の「クイックプリセット」メニューで標準寸法を適用してください。',
     'ct.field.name':       '名前',
