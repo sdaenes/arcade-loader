@@ -18,7 +18,7 @@ export const translations = {
     'app.summary.trucks':     'Camions',
     'app.summary.volume':     'Volume total',
     'app.margin.label':       'Marge d\'erreur',
-    'app.margin.hint':        ({ n }) => `Réduit l'espace utilisable de ${n}% pour tenir compte des imprévus, sangles, protections...`,
+    'app.margin.hint':        ({ n }) => n < 0 ? `Marge négative : +${-n}% d'espace supplémentaire toléré (léger emboîtement des machines autorisé).` : n === 0 ? 'Aucune marge — dimensions nominales utilisées telles quelles.' : `Réduit l'espace utilisable de ${n}% pour tenir compte des imprévus, sangles, protections...`,
     'app.optimize':           '🎮 OPTIMISER LE CHARGEMENT',
     'app.calculating':        'Calcul en cours',
 
@@ -149,8 +149,8 @@ export const translations = {
     'results.csv.width':   'Largeur',
     'results.csv.height':  'Hauteur',
     'results.csv.depth':   'Profondeur',
-    'results.optimize.hint': 'Des camions sont sous-utilisés (< 80 %). Une meilleure répartition est peut-être possible.',
-    'results.optimize.btn':  ({ n }) => `Réessayer sur ${n} camion${n > 1 ? 's' : ''}`,
+    'results.optimize.hint': ({ n }) => `${n} borne${n > 1 ? 's' : ''} non placée${n > 1 ? 's' : ''}. Réduire la marge pour autoriser un emboîtement léger ?`,
+    'results.optimize.btn':  ({ m }) => `Réessayer — marge ${m > 0 ? '+' : ''}${m}%`,
 
     // Manual Editor
     'manual.section.truck':    'Camion',
@@ -188,7 +188,7 @@ export const translations = {
     'app.summary.trucks':     'Trucks',
     'app.summary.volume':     'Total volume',
     'app.margin.label':       'Error margin',
-    'app.margin.hint':        ({ n }) => `Reduces usable space by ${n}% to account for straps, padding, surprises...`,
+    'app.margin.hint':        ({ n }) => n < 0 ? `Negative margin: +${-n}% extra space tolerated (slight machine interlocking allowed).` : n === 0 ? 'No margin — nominal dimensions used as-is.' : `Reduces usable space by ${n}% to account for straps, padding, surprises...`,
     'app.optimize':           '🎮 OPTIMIZE LOADING',
     'app.calculating':        'Calculating',
 
@@ -312,8 +312,8 @@ export const translations = {
     'results.csv.width':   'Width',
     'results.csv.height':  'Height',
     'results.csv.depth':   'Depth',
-    'results.optimize.hint': 'Some trucks are under-utilized (< 80%). A better arrangement may be possible.',
-    'results.optimize.btn':  ({ n }) => `Retry with ${n} truck${n !== 1 ? 's' : ''}`,
+    'results.optimize.hint': ({ n }) => `${n} cabinet${n !== 1 ? 's' : ''} could not be placed. Try a tighter margin to allow slight interlocking?`,
+    'results.optimize.btn':  ({ m }) => `Retry — margin ${m > 0 ? '+' : ''}${m}%`,
 
     'manual.section.truck':    'Truck',
     'manual.section.cabs':     'Cabinets',
@@ -350,7 +350,7 @@ export const translations = {
     'app.summary.trucks':     'トラック',
     'app.summary.volume':     '総容積',
     'app.margin.label':       '誤差マージン',
-    'app.margin.hint':        ({ n }) => `ストラップや緩衝材を考慮して使用可能スペースを${n}%削減します。`,
+    'app.margin.hint':        ({ n }) => n < 0 ? `マイナスマージン：+${-n}%の追加スペースを許容（軽微な筐体の嵌め合いを許可）。` : n === 0 ? 'マージンなし — 公称寸法をそのまま使用。' : `ストラップや緩衝材を考慮して使用可能スペースを${n}%削減します。`,
     'app.optimize':           '🎮 積載を最適化',
     'app.calculating':        '計算中',
 
@@ -474,8 +474,8 @@ export const translations = {
     'results.csv.width':   '幅',
     'results.csv.height':  '高さ',
     'results.csv.depth':   '奥行き',
-    'results.optimize.hint': '一部のトラックが低利用率（80%未満）です。より良い積載が可能かもしれません。',
-    'results.optimize.btn':  ({ n }) => `${n}台で再最適化`,
+    'results.optimize.hint': ({ n }) => `${n}台の筐体が未配置です。マージンを下げて軽微な嵌め合いを許容しますか？`,
+    'results.optimize.btn':  ({ m }) => `再試行 — マージン${m > 0 ? '+' : ''}${m}%`,
 
     'manual.section.truck':    'トラック',
     'manual.section.cabs':     '筐体',

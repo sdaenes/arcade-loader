@@ -18,14 +18,14 @@ function FillBar({ rate }) {
   );
 }
 
-export default function ResultsView({ results, trucks, loading, onBack, onOptimizeFewer }) {
+export default function ResultsView({ results, trucks, loading, onBack, onOptimizeTighter }) {
   const [selectedTruck, setSelectedTruck] = useState(0);
   const { t } = useLanguage();
   const activeTruck = results.trucks[selectedTruck];
 
-  const usedTrucks = results.trucks.filter(tr => tr.cabinetCount > 0);
-  const canOptimize = usedTrucks.length > 1 && usedTrucks.some(tr => tr.fillRate < 80);
-  const suggestedCount = Math.max(1, usedTrucks.length - 1);
+  const currentMargin = results.errorMargin;
+  const suggestedMargin = Math.max(-15, currentMargin - 5);
+  const canOptimize = results.unplacedCabinets > 0 && suggestedMargin < currentMargin;
 
   const exportData = () => {
     const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
@@ -101,13 +101,13 @@ export default function ResultsView({ results, trucks, loading, onBack, onOptimi
 
       {canOptimize && (
         <div className={styles.optimizeHint}>
-          <span>{t('results.optimize.hint')}</span>
+          <span>{t('results.optimize.hint', { n: results.unplacedCabinets })}</span>
           <button
             className={styles.optimizeHintBtn}
-            onClick={() => onOptimizeFewer(suggestedCount)}
+            onClick={() => onOptimizeTighter(suggestedMargin)}
             disabled={loading}
           >
-            {t('results.optimize.btn', { n: suggestedCount })}
+            {t('results.optimize.btn', { m: suggestedMargin })}
           </button>
         </div>
       )}

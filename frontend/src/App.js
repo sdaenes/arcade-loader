@@ -143,15 +143,16 @@ export default function App() {
     });
   }, []);
 
-  const handleOptimize = useCallback(async (overrideTrucks) => {
+  const handleOptimize = useCallback(async (overrideTrucks, overrideMargin) => {
     const trucksToUse = Array.isArray(overrideTrucks) ? overrideTrucks : trucks;
+    const marginToUse = typeof overrideMargin === 'number' ? overrideMargin : errorMargin;
     setLoading(true);
     setError(null);
     try {
       const response = await fetch(`${API_BASE}/api/optimize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cabinets, trucks: trucksToUse, errorMargin }),
+        body: JSON.stringify({ cabinets, trucks: trucksToUse, errorMargin: marginToUse }),
       });
       if (!response.ok) {
         const err = await response.json();
@@ -227,7 +228,7 @@ export default function App() {
                 </div>
                 <input
                   type="range"
-                  min={0}
+                  min={-10}
                   max={30}
                   step={1}
                   value={errorMargin}
@@ -276,7 +277,7 @@ export default function App() {
           trucks={trucks}
           loading={loading}
           onBack={() => setActiveTab('setup')}
-          onOptimizeFewer={(n) => handleOptimize(trucks.slice(0, n))}
+          onOptimizeTighter={(m) => { setErrorMargin(m); handleOptimize(undefined, m); }}
         />
       )}
 
