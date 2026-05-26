@@ -14,6 +14,8 @@ export const translations = {
     // App
     'app.reset.btn':          '↺ Reset Configuration',
     'app.reset.confirm':      'Réinitialiser le chargement ?\n\nLes bornes et camions de l\'onglet Chargement seront effacés.\nL\'annuaire, les catégories, les contenants et les placements manuels sont conservés.',
+    'app.reset.manual.btn':   '↺ Reset manuel',
+    'app.reset.manual.confirm': 'Réinitialiser tous les placements manuels ?\n\nL\'onglet Chargement reste intact.',
     'app.summary.cabinets':   'Bornes totales',
     'app.summary.trucks':     'Camions',
     'app.summary.volume':     'Volume total',
@@ -185,6 +187,8 @@ export const translations = {
 
     'app.reset.btn':          '↺ Reset Config',
     'app.reset.confirm':      'Reset the loading plan?\n\nCabinets and trucks in the Loading tab will be cleared.\nThe directory, categories, containers and manual placements are kept.',
+    'app.reset.manual.btn':   '↺ Reset manual',
+    'app.reset.manual.confirm': 'Reset all manual placements?\n\nThe Loading tab remains untouched.',
     'app.summary.cabinets':   'Total cabinets',
     'app.summary.trucks':     'Trucks',
     'app.summary.volume':     'Total volume',
@@ -348,6 +352,8 @@ export const translations = {
 
     'app.reset.btn':          '↺ 積載をリセット',
     'app.reset.confirm':      '積載をリセットしますか？\n\n積載タブの筐体とトラックが消去されます。\nリスト、カテゴリ、コンテナ、手動配置は保持されます。',
+    'app.reset.manual.btn':   '↺ 手動配置をリセット',
+    'app.reset.manual.confirm': 'すべての手動配置をリセットしますか？\n\n積載タブはそのまま保持されます。',
     'app.summary.cabinets':   '筐体合計',
     'app.summary.trucks':     'トラック',
     'app.summary.volume':     '総容積',

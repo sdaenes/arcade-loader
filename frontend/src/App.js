@@ -99,6 +99,12 @@ export default function App() {
     }
   };
 
+  const handleResetManual = () => {
+    if (window.confirm(t('app.reset.manual.confirm'))) {
+      setManualPlacements({});
+    }
+  };
+
   const handleAddFromDirectory = useCallback((cab) => {
     const COLORS = ['#00f5ff','#ff00aa','#aaff00','#ffaa00','#aa00ff','#ff5500','#00ffaa','#ff0055'];
     const colorIdx = cabinets.length % COLORS.length;
@@ -207,8 +213,12 @@ export default function App() {
             </button>
           );
         })}
-        <button className={styles.tabReset} onClick={handleReset} title={t('app.reset.btn')}>
-          {t('app.reset.btn')}
+        <button
+          className={styles.tabReset}
+          onClick={activeTab === 'manual' ? handleResetManual : handleReset}
+          title={activeTab === 'manual' ? t('app.reset.manual.btn') : t('app.reset.btn')}
+        >
+          {activeTab === 'manual' ? t('app.reset.manual.btn') : t('app.reset.btn')}
         </button>
       </div>
 
