@@ -87,7 +87,7 @@ export const translations = {
     'dir.search.deep':     '⚡ Recherche approfondie',
     'dir.searching':       'Recherche',
     'dir.analyzing':       'Analyse',
-    'dir.add.config':      '+ Ajouter à la config',
+    'dir.add.config':      '+ Ajouter au chargement',
     'dir.delete':          'Supprimer',
     'dir.details':         'Détails',
     'dir.new':             '+ Ajouter une borne',
@@ -149,6 +149,8 @@ export const translations = {
     'results.csv.width':   'Largeur',
     'results.csv.height':  'Hauteur',
     'results.csv.depth':   'Profondeur',
+    'results.optimize.hint': 'Des camions sont sous-utilisés (< 80 %). Une meilleure répartition est peut-être possible.',
+    'results.optimize.btn':  ({ n }) => `Réessayer sur ${n} camion${n > 1 ? 's' : ''}`,
 
     // Manual Editor
     'manual.section.truck':    'Camion',
@@ -251,7 +253,7 @@ export const translations = {
     'dir.search.deep':     '⚡ Deep search',
     'dir.searching':       'Searching',
     'dir.analyzing':       'Analyzing',
-    'dir.add.config':      '+ Add to config',
+    'dir.add.config':      '+ Add to loading',
     'dir.delete':          'Delete',
     'dir.details':         'Details',
     'dir.new':             '+ Add cabinet',
@@ -310,6 +312,8 @@ export const translations = {
     'results.csv.width':   'Width',
     'results.csv.height':  'Height',
     'results.csv.depth':   'Depth',
+    'results.optimize.hint': 'Some trucks are under-utilized (< 80%). A better arrangement may be possible.',
+    'results.optimize.btn':  ({ n }) => `Retry with ${n} truck${n !== 1 ? 's' : ''}`,
 
     'manual.section.truck':    'Truck',
     'manual.section.cabs':     'Cabinets',
@@ -470,6 +474,8 @@ export const translations = {
     'results.csv.width':   '幅',
     'results.csv.height':  '高さ',
     'results.csv.depth':   '奥行き',
+    'results.optimize.hint': '一部のトラックが低利用率（80%未満）です。より良い積載が可能かもしれません。',
+    'results.optimize.btn':  ({ n }) => `${n}台で再最適化`,
 
     'manual.section.truck':    'トラック',
     'manual.section.cabs':     '筐体',

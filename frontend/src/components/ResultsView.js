@@ -18,10 +18,14 @@ function FillBar({ rate }) {
   );
 }
 
-export default function ResultsView({ results, trucks, onBack }) {
+export default function ResultsView({ results, trucks, loading, onBack, onOptimizeFewer }) {
   const [selectedTruck, setSelectedTruck] = useState(0);
   const { t } = useLanguage();
   const activeTruck = results.trucks[selectedTruck];
+
+  const usedTrucks = results.trucks.filter(tr => tr.cabinetCount > 0);
+  const canOptimize = usedTrucks.length > 1 && usedTrucks.some(tr => tr.fillRate < 80);
+  const suggestedCount = Math.max(1, usedTrucks.length - 1);
 
   const exportData = () => {
     const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
@@ -92,6 +96,19 @@ export default function ResultsView({ results, trucks, onBack }) {
       {results.tips.length > 0 && (
         <div className={styles.tips}>
           {results.tips.map((tip, i) => <div key={i} className={styles.tip}>{tip}</div>)}
+        </div>
+      )}
+
+      {canOptimize && (
+        <div className={styles.optimizeHint}>
+          <span>{t('results.optimize.hint')}</span>
+          <button
+            className={styles.optimizeHintBtn}
+            onClick={() => onOptimizeFewer(suggestedCount)}
+            disabled={loading}
+          >
+            {t('results.optimize.btn', { n: suggestedCount })}
+          </button>
         </div>
       )}
 

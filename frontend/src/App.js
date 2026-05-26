@@ -143,14 +143,14 @@ export default function App() {
     });
   }, []);
 
-  const handleOptimize = useCallback(async () => {
+  const handleOptimize = useCallback(async (overrideTrucks) => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch(`${API_BASE}/api/optimize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cabinets, trucks, errorMargin }),
+        body: JSON.stringify({ cabinets, trucks: overrideTrucks || trucks, errorMargin }),
       });
       if (!response.ok) {
         const err = await response.json();
@@ -270,7 +270,13 @@ export default function App() {
       )}
 
       {activeTab === 'results' && results && (
-        <ResultsView results={results} trucks={trucks} onBack={() => setActiveTab('setup')} />
+        <ResultsView
+          results={results}
+          trucks={trucks}
+          loading={loading}
+          onBack={() => setActiveTab('setup')}
+          onOptimizeFewer={(n) => handleOptimize(trucks.slice(0, n))}
+        />
       )}
 
       {activeTab === 'manual' && (
