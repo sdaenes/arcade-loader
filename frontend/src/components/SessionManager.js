@@ -13,9 +13,13 @@ function formatDate(isoString) {
   return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
-function formatAutoName() {
+function formatNow() {
   const d = new Date();
-  return `Auto — ${d.toLocaleDateString('fr-FR')} ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+  return `${d.toLocaleDateString('fr-FR')} ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+}
+
+function formatAutoName() {
+  return `Auto — ${formatNow()}`;
 }
 
 export default function SessionManager({ cabinets, trucks, errorMargin, manualPlacements, onLoad }) {
@@ -26,8 +30,7 @@ export default function SessionManager({ cabinets, trucks, errorMargin, manualPl
   const importRef = useRef(null);
 
   function openSave() {
-    const d = new Date();
-    setSaveName(`${d.toLocaleDateString('fr-FR')} ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
+    setSaveName(formatNow());
     setModal('save');
   }
 
@@ -73,10 +76,14 @@ export default function SessionManager({ cabinets, trucks, errorMargin, manualPl
     reader.onload = (ev) => {
       try {
         const result = importSessionsJSON(ev.target.result);
-        setFeedback(`${result.imported} importée(s), ${result.skipped} ignorée(s)`);
+        const msg = `${result.imported} importée(s), ${result.skipped} ignorée(s)`;
         setSessions(loadSessions());
+        setFeedback(msg);
+        setModal('load');
       } catch {
+        setSessions(loadSessions());
         setFeedback('Fichier invalide.');
+        setModal('load');
       }
     };
     reader.readAsText(file);
