@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import styles from './ManualEditor.module.css';
 import { useLanguage } from '../i18n/LanguageContext';
+import PlacementManager from './PlacementManager';
 
 function genId() { return 'mp_' + Math.random().toString(36).slice(2, 9); }
 
@@ -340,6 +341,11 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
             </button>
           ))}
         </div>
+
+        <PlacementManager
+          allPlacements={allPlacements}
+          onLoad={onPlacementsChange}
+        />
 
         <div className={styles.sideSection}>
           <div className={styles.sideTitle}>
