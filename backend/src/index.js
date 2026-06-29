@@ -29,6 +29,72 @@ async function fetchKnownSources() {
     .map(r => r.value);
 }
 
+async function askClaudeFromSources(name, sources) {
+  if (sources.length === 0) return null;
+
+  const sourcesText = sources
+    .map(s => `=== ${s.name} ===\n${s.text}`)
+    .join('\n\n');
+
+  const prompt = `Tu es un expert en bornes d'arcade.
+
+Cherche la borne "${name}" dans les textes suivants et retourne ses dimensions EXACTEMENT telles qu'indiquées dans le texte.
+
+RÈGLE ABSOLUE : Ne retourne JAMAIS des dimensions inventées ou estimées. Si la borne "${name}" n'est pas explicitement mentionnée dans ces textes avec ses dimensions, retourne found: false.
+
+${sourcesText}
+
+Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
+{"found": true/false, "width": <largeur en mètres ou null>, "height": <hauteur en mètres ou null>, "depth": <profondeur en mètres ou null>, "weight": <poids en kg ou null>, "category": "<type ou null>", "notes": "<source utilisée ou null>"}`;
+
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 512,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const raw = msg.content.find(b => b.type === 'text')?.text?.trim() || '';
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return null;
+
+  const data = JSON.parse(jsonMatch[0]);
+  if (!data.found) return null;
+  return data;
+}
+
+async function askClaudeWebSearch(name, lang) {
+  const isEn = lang === 'en';
+  const prompt = isEn
+    ? `Search for the technical manual or official product sheet of the arcade cabinet "${name}". Find the exact physical dimensions (width, height, depth in meters) and weight (in kg). Extract them from a reliable source such as a manufacturer manual or official spec sheet.
+
+ABSOLUTE RULE: If you cannot find reliable dimensions from an actual source, return null for all dimension fields. Never invent or estimate dimensions.
+
+Reply ONLY with valid JSON (no markdown):
+{"width": <meters or null>, "height": <meters or null>, "depth": <meters or null>, "weight": <kg or null>, "category": "<cabinet type or null>", "notes": "<source URL and brief description>"}`
+    : `Cherche le manuel technique ou la fiche produit officielle de la borne d'arcade "${name}". Trouve les dimensions physiques exactes (largeur, hauteur, profondeur en mètres) et le poids (en kg). Extrais-les depuis une source fiable : manuel fabricant, fiche technique officielle.
+
+RÈGLE ABSOLUE : Si tu ne trouves pas de dimensions fiables depuis une vraie source, retourne null pour tous les champs de dimensions. Ne jamais inventer ni estimer.
+
+Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
+{"width": <mètres ou null>, "height": <mètres ou null>, "depth": <mètres ou null>, "weight": <kg ou null>, "category": "<type de borne ou null>", "notes": "<URL source et description courte>"}`;
+
+  const msg = await anthropic.messages.create({
+    model: 'claude-opus-4-8',
+    max_tokens: 1024,
+    thinking: { type: 'adaptive' },
+    tools: [{ type: 'web_search_20260209', name: 'web_search' }],
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  // Prendre le dernier bloc texte (après les appels d'outils)
+  const textBlocks = msg.content.filter(b => b.type === 'text');
+  const raw = textBlocks[textBlocks.length - 1]?.text?.trim() || '';
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return null;
+
+  return JSON.parse(jsonMatch[0]);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
