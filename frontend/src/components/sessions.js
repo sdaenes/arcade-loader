@@ -38,15 +38,18 @@ export function exportSessionsJSON() {
 
 export function importSessionsJSON(jsonString) {
   const incoming = JSON.parse(jsonString);
+  if (!Array.isArray(incoming)) throw new Error('Not an array');
   const existing = loadSessions();
   const existingIds = new Set(existing.map(s => s.id));
   let imported = 0;
   let skipped = 0;
   for (const s of incoming) {
+    if (!s || typeof s.id !== 'string') { skipped++; continue; }
     if (existingIds.has(s.id)) {
       skipped++;
     } else {
       existing.push(s);
+      existingIds.add(s.id);
       imported++;
     }
   }

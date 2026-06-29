@@ -10,6 +10,7 @@ import ContainerManager from './components/ContainerManager';
 import CategoryManager from './components/CategoryManager';
 import Header from './components/Header';
 import SessionManager from './components/SessionManager';
+import { saveSession } from './components/sessions';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
 
@@ -82,6 +83,11 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('setup');
   const tabDragIdx = useRef(null);
 
+  const cabinetsRef = useRef(cabinets);
+  const trucksRef = useRef(trucks);
+  const errorMarginRef = useRef(errorMargin);
+  const manualPlacementsRef = useRef(manualPlacements);
+
   useEffect(() => { localStorage.setItem('al_cabinets', JSON.stringify(cabinets)); }, [cabinets]);
   useEffect(() => { localStorage.setItem('al_trucks', JSON.stringify(trucks)); }, [trucks]);
   useEffect(() => { localStorage.setItem('al_margin', JSON.stringify(errorMargin)); }, [errorMargin]);
@@ -91,11 +97,27 @@ export default function App() {
   useEffect(() => { localStorage.setItem('al_categories', JSON.stringify(categories)); }, [categories]);
   useEffect(() => { localStorage.setItem('al_taborder', JSON.stringify(tabOrder)); }, [tabOrder]);
 
+  useEffect(() => { cabinetsRef.current = cabinets; }, [cabinets]);
+  useEffect(() => { trucksRef.current = trucks; }, [trucks]);
+  useEffect(() => { errorMarginRef.current = errorMargin; }, [errorMargin]);
+  useEffect(() => { manualPlacementsRef.current = manualPlacements; }, [manualPlacements]);
+
   const handleSessionLoad = useCallback((data) => {
+    const autoName = (() => {
+      const d = new Date();
+      return `Auto — ${d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+    })();
+    saveSession(autoName, {
+      cabinets: cabinetsRef.current,
+      trucks: trucksRef.current,
+      errorMargin: errorMarginRef.current,
+      manualPlacements: manualPlacementsRef.current,
+    });
     if (data.cabinets) setCabinets(data.cabinets);
     if (data.trucks) setTrucks(data.trucks);
     if (typeof data.errorMargin === 'number') setErrorMargin(data.errorMargin);
     if (data.manualPlacements) setManualPlacements(data.manualPlacements);
+    setResults(null);
   }, []);
 
   const handleReset = () => {

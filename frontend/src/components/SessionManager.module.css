@@ -96,6 +96,12 @@
 
 .btnPrimary:hover { background: #2e6abf; }
 
+.btnPrimary:disabled {
+  background: #2a4a7f;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .btnSecondary {
   padding: 0.45rem 1rem;
   border: 1px solid #555;

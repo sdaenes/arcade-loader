@@ -18,10 +18,6 @@ function formatNow() {
   return `${d.toLocaleDateString('fr-FR')} ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
-function formatAutoName() {
-  return `Auto — ${formatNow()}`;
-}
-
 export default function SessionManager({ cabinets, trucks, errorMargin, manualPlacements, onLoad }) {
   const [modal, setModal] = useState(null); // 'save' | 'load' | null
   const [saveName, setSaveName] = useState('');
@@ -47,8 +43,6 @@ export default function SessionManager({ cabinets, trucks, errorMargin, manualPl
   }
 
   function handleLoad(session) {
-    const autoName = formatAutoName();
-    saveSession(autoName, { cabinets, trucks, errorMargin, manualPlacements });
     onLoad(session.data);
     setModal(null);
   }

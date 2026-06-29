@@ -83,3 +83,28 @@ test('importSessionsJSON returns 0/0 for empty array', () => {
 test('importSessionsJSON throws on invalid JSON', () => {
   expect(() => importSessionsJSON('not-json')).toThrow();
 });
+
+test('importSessionsJSON throws on non-array JSON', () => {
+  expect(() => importSessionsJSON('{}')).toThrow();
+  expect(() => importSessionsJSON('"string"')).toThrow();
+});
+
+test('importSessionsJSON skips sessions without string id', () => {
+  const toImport = JSON.stringify([
+    { id: undefined, name: 'Bad', savedAt: new Date().toISOString(), data: MOCK_DATA },
+    { name: 'No id', data: MOCK_DATA },
+    { id: 'valid-id', name: 'Good', savedAt: new Date().toISOString(), data: MOCK_DATA },
+  ]);
+  const result = importSessionsJSON(toImport);
+  expect(result.imported).toBe(1);
+  expect(result.skipped).toBe(2);
+  expect(loadSessions()[0].id).toBe('valid-id');
+});
+
+test('importSessionsJSON deduplicates within imported file', () => {
+  const session = { id: 'dup-id', name: 'Dup', savedAt: new Date().toISOString(), data: MOCK_DATA };
+  const toImport = JSON.stringify([session, session]);
+  const result = importSessionsJSON(toImport);
+  expect(result.imported).toBe(1);
+  expect(result.skipped).toBe(1);
+});
