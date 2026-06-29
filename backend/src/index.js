@@ -15,6 +15,7 @@ async function fetchKnownSources() {
         headers: { 'User-Agent': 'ArcadeLoader/1.0' },
         signal: AbortSignal.timeout(8000),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${s.url}`);
       const html = await res.text();
       const text = html
         .replace(/<[^>]+>/g, ' ')
@@ -57,7 +58,8 @@ Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
   const jsonMatch = raw.match(/\{[\s\S]*\}/);
   if (!jsonMatch) return null;
 
-  const data = JSON.parse(jsonMatch[0]);
+  let data;
+  try { data = JSON.parse(jsonMatch[0]); } catch { return null; }
   if (!data.found) return null;
   return data;
 }
@@ -80,7 +82,7 @@ Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
 
   const msg = await anthropic.messages.create({
     model: 'claude-opus-4-8',
-    max_tokens: 1024,
+    max_tokens: 2048,
     thinking: { type: 'adaptive' },
     tools: [{ type: 'web_search_20260209', name: 'web_search' }],
     messages: [{ role: 'user', content: prompt }],
@@ -92,7 +94,7 @@ Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
   const jsonMatch = raw.match(/\{[\s\S]*\}/);
   if (!jsonMatch) return null;
 
-  return JSON.parse(jsonMatch[0]);
+  try { return JSON.parse(jsonMatch[0]); } catch { return null; }
 }
 
 const app = express();
@@ -140,7 +142,7 @@ app.post('/api/search-cabinet', async (req, res) => {
     const sources = await fetchKnownSources();
     let data = await askClaudeFromSources(name.trim(), sources);
 
-    // Étape 2 : recherche web du manuel (mode approfondi ou fallback non trouvé)
+    // Étape 2 : uniquement en mode approfondi, si étape 1 n'a rien trouvé
     if (!data && deep) {
       data = await askClaudeWebSearch(name.trim(), lang);
     }
