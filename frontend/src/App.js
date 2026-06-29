@@ -238,14 +238,6 @@ export default function App() {
           <div className={styles.column}>
             <TruckPanel trucks={trucks} onChange={setTrucks} containerTemplates={containerTemplates} />
 
-            <SessionManager
-              cabinets={cabinets}
-              trucks={trucks}
-              errorMargin={errorMargin}
-              manualPlacements={manualPlacements}
-              onLoad={handleSessionLoad}
-            />
-
             <div className={styles.controlPanel}>
               <div className={styles.marginControl}>
                 <div className={styles.marginHeader}>
@@ -293,6 +285,14 @@ export default function App() {
                 )}
               </button>
             </div>
+
+            <SessionManager
+              cabinets={cabinets}
+              trucks={trucks}
+              errorMargin={errorMargin}
+              manualPlacements={manualPlacements}
+              onLoad={handleSessionLoad}
+            />
           </div>
         </div>
       )}
