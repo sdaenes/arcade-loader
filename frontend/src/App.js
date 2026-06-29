@@ -9,6 +9,7 @@ import CabinetDirectory from './components/CabinetDirectory';
 import ContainerManager from './components/ContainerManager';
 import CategoryManager from './components/CategoryManager';
 import Header from './components/Header';
+import SessionManager from './components/SessionManager';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
 
@@ -89,6 +90,13 @@ export default function App() {
   useEffect(() => { localStorage.setItem('al_containers', JSON.stringify(containerTemplates)); }, [containerTemplates]);
   useEffect(() => { localStorage.setItem('al_categories', JSON.stringify(categories)); }, [categories]);
   useEffect(() => { localStorage.setItem('al_taborder', JSON.stringify(tabOrder)); }, [tabOrder]);
+
+  const handleSessionLoad = useCallback((data) => {
+    if (data.cabinets) setCabinets(data.cabinets);
+    if (data.trucks) setTrucks(data.trucks);
+    if (typeof data.errorMargin === 'number') setErrorMargin(data.errorMargin);
+    if (data.manualPlacements) setManualPlacements(data.manualPlacements);
+  }, []);
 
   const handleReset = () => {
     if (window.confirm(t('app.reset.confirm'))) {
@@ -229,6 +237,14 @@ export default function App() {
           </div>
           <div className={styles.column}>
             <TruckPanel trucks={trucks} onChange={setTrucks} containerTemplates={containerTemplates} />
+
+            <SessionManager
+              cabinets={cabinets}
+              trucks={trucks}
+              errorMargin={errorMargin}
+              manualPlacements={manualPlacements}
+              onLoad={handleSessionLoad}
+            />
 
             <div className={styles.controlPanel}>
               <div className={styles.marginControl}>
