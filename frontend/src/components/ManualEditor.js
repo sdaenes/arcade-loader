@@ -28,10 +28,18 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
   const [activeCabId, setActiveCabId] = useState(null); // cabinet type id being placed
   const [selectedId, setSelectedId] = useState(null);   // placed instance id
   const dragRef = useRef(null); // { id, offsetX, offsetZ }
+  const [orientations, setOrientations] = useState({}); // { [truckId]: true } = landscape
 
   const setAllPlacements = onPlacementsChange;
 
   const truck = trucks[truckIdx] || trucks[0];
+
+  const effectiveTruck = useMemo(() => {
+    if (!truck) return null;
+    return orientations[truck.id]
+      ? { ...truck, width: truck.depth, depth: truck.width }
+      : truck;
+  }, [truck, orientations]);
   const placements = useMemo(
     () => (truck && allPlacements[truck.id]) || [],
     [truck, allPlacements]
@@ -53,11 +61,11 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
   // ── Drawing ──────────────────────────────────────────────────────────────
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !truck) return;
+    if (!canvas || !effectiveTruck) return;
     const ctx = canvas.getContext('2d');
     const W = canvas.width;
     const H = canvas.height;
-    const scale = getScale(truck, W, H);
+    const scale = getScale(effectiveTruck, W, H);
 
     ctx.clearRect(0, 0, W, H);
 
@@ -69,27 +77,27 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
     ctx.strokeStyle = '#1a1a3a';
     ctx.lineWidth = 1;
     const step = scale * 0.5;
-    for (let x = PADDING; x <= PADDING + truck.width * scale; x += step) {
-      ctx.beginPath(); ctx.moveTo(x, PADDING); ctx.lineTo(x, PADDING + truck.depth * scale); ctx.stroke();
+    for (let x = PADDING; x <= PADDING + effectiveTruck.width * scale; x += step) {
+      ctx.beginPath(); ctx.moveTo(x, PADDING); ctx.lineTo(x, PADDING + effectiveTruck.depth * scale); ctx.stroke();
     }
-    for (let y = PADDING; y <= PADDING + truck.depth * scale; y += step) {
-      ctx.beginPath(); ctx.moveTo(PADDING, y); ctx.lineTo(PADDING + truck.width * scale, y); ctx.stroke();
+    for (let y = PADDING; y <= PADDING + effectiveTruck.depth * scale; y += step) {
+      ctx.beginPath(); ctx.moveTo(PADDING, y); ctx.lineTo(PADDING + effectiveTruck.width * scale, y); ctx.stroke();
     }
 
     // Truck outline
     ctx.strokeStyle = '#ffaa00';
     ctx.lineWidth = 2;
-    ctx.strokeRect(PADDING, PADDING, truck.width * scale, truck.depth * scale);
+    ctx.strokeRect(PADDING, PADDING, effectiveTruck.width * scale, effectiveTruck.depth * scale);
 
     // Dimension labels
     ctx.fillStyle = '#ffaa00';
     ctx.font = '11px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(`${truck.width} m`, PADDING + (truck.width * scale) / 2, PADDING - 8);
+    ctx.fillText(`${effectiveTruck.width} m`, PADDING + (effectiveTruck.width * scale) / 2, PADDING - 8);
     ctx.save();
-    ctx.translate(PADDING - 10, PADDING + (truck.depth * scale) / 2);
+    ctx.translate(PADDING - 10, PADDING + (effectiveTruck.depth * scale) / 2);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillText(`${truck.depth} m`, 0, 0);
+    ctx.fillText(`${effectiveTruck.depth} m`, 0, 0);
     ctx.restore();
 
     // Placements
@@ -99,18 +107,15 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
       const pd = (p.rotation === 90 ? p.width : p.depth) * scale;
       const isSelected = p.id === selectedId;
 
-      // Fill
       ctx.globalAlpha = 0.6;
       ctx.fillStyle = p.color;
       ctx.fillRect(cx, cy, pw, pd);
       ctx.globalAlpha = 1;
 
-      // Border
       ctx.strokeStyle = isSelected ? '#ffffff' : p.color;
       ctx.lineWidth = isSelected ? 2.5 : 1.5;
       ctx.strokeRect(cx, cy, pw, pd);
 
-      // Name
       ctx.fillStyle = '#ffffff';
       ctx.font = `bold ${Math.max(9, Math.min(13, pw / 6))}px Arial`;
       ctx.textAlign = 'center';
@@ -120,7 +125,7 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
       ctx.textBaseline = 'alphabetic';
     }
 
-    // Active cabinet ghost (cursor preview stored in dragRef as ghostPos)
+    // Ghost preview
     if (activeCab && dragRef.current?.ghost) {
       const g = dragRef.current.ghost;
       const pw = activeCab.width * scale;
@@ -136,13 +141,13 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
       ctx.setLineDash([]);
     }
 
-    // Truck name + info
+    // Info line
     ctx.fillStyle = 'rgba(255,170,0,0.8)';
     ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(`${truck.name}  |  ${truck.width}×${truck.depth} m  (${t('manual.canvas.view')})`, PADDING, H - 12);
+    ctx.fillText(`${effectiveTruck.name}  |  ${effectiveTruck.width}×${effectiveTruck.depth} m  (${t('manual.canvas.view')})`, PADDING, H - 12);
     ctx.fillText(t('manual.canvas.placed', { n: placements.length }), W - 160, H - 12);
-  }, [truck, placements, selectedId, activeCab, t]);
+  }, [effectiveTruck, placements, selectedId, activeCab, t]);
 
   useEffect(() => { draw(); }, [draw]);
 
@@ -166,8 +171,8 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
   // Hit test
   const hitTest = useCallback((cx, cy) => {
     const canvas = canvasRef.current;
-    if (!canvas || !truck) return null;
-    const scale = getScale(truck, canvas.width, canvas.height);
+    if (!canvas || !effectiveTruck) return null;
+    const scale = getScale(effectiveTruck, canvas.width, canvas.height);
     for (let i = placements.length - 1; i >= 0; i--) {
       const p = placements[i];
       const { cx: px, cy: py } = toCanvas(p.x, p.z, scale);
@@ -176,7 +181,7 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
       if (cx >= px && cx <= px + pw && cy >= py && cy <= py + pd) return p;
     }
     return null;
-  }, [truck, placements]);
+  }, [effectiveTruck, placements]);
 
   // Mouse events
   const getPos = (e) => {
@@ -187,15 +192,14 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
   const handleMouseDown = (e) => {
     const { cx, cy } = getPos(e);
     const canvas = canvasRef.current;
-    const scale = getScale(truck, canvas.width, canvas.height);
+    const scale = getScale(effectiveTruck, canvas.width, canvas.height);
 
     if (activeCab) {
-      // Place mode: place cabinet at click
       const counts = cabCounts.find(c => c.id === activeCab.id);
       if (counts && counts.remaining <= 0) return;
       const { x, z } = fromCanvas(cx, cy, scale);
-      const px = Math.max(0, Math.min(truck.width - activeCab.width, x - activeCab.width / 2));
-      const pz = Math.max(0, Math.min(truck.depth - activeCab.depth, z - activeCab.depth / 2));
+      const px = Math.max(0, Math.min(effectiveTruck.width - activeCab.width, x - activeCab.width / 2));
+      const pz = Math.max(0, Math.min(effectiveTruck.depth - activeCab.depth, z - activeCab.depth / 2));
       const newPlacement = {
         id: genId(),
         cabId: activeCab.id,
@@ -212,7 +216,6 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
       return;
     }
 
-    // Select / drag mode
     const hit = hitTest(cx, cy);
     if (hit) {
       setSelectedId(hit.id);
@@ -226,7 +229,7 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
   const handleMouseMove = (e) => {
     const { cx, cy } = getPos(e);
     const canvas = canvasRef.current;
-    const scale = getScale(truck, canvas.width, canvas.height);
+    const scale = getScale(effectiveTruck, canvas.width, canvas.height);
 
     if (activeCab) {
       dragRef.current = { ...dragRef.current, ghost: { cx, cy } };
@@ -241,8 +244,8 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
     const { x: rawX, z: rawZ } = fromCanvas(cx - offX, cy - offZ, scale);
     const pw = p.rotation === 90 ? p.depth : p.width;
     const pd = p.rotation === 90 ? p.width : p.depth;
-    const nx = Math.max(0, Math.min(truck.width - pw, rawX));
-    const nz = Math.max(0, Math.min(truck.depth - pd, rawZ));
+    const nx = Math.max(0, Math.min(effectiveTruck.width - pw, rawX));
+    const nz = Math.max(0, Math.min(effectiveTruck.depth - pd, rawZ));
     setPlacements(prev => prev.map(pl => pl.id === id ? { ...pl, x: nx, z: nz } : pl));
   };
 
@@ -331,14 +334,32 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
         <div className={styles.sideSection}>
           <div className={styles.sideTitle}>{t('manual.section.truck')}</div>
           {trucks.map((tr, i) => (
-            <button
-              key={tr.id}
-              className={`${styles.truckBtn} ${truckIdx === i ? styles.truckBtnActive : ''}`}
-              onClick={() => { setTruckIdx(i); setSelectedId(null); setActiveCabId(null); }}
-            >
-              🚛 {tr.name}
-              <span className={styles.truckDim}>{tr.width}×{tr.depth} m</span>
-            </button>
+            <div key={tr.id} style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+              <button
+                className={`${styles.truckBtn} ${truckIdx === i ? styles.truckBtnActive : ''}`}
+                style={{ flex: 1 }}
+                onClick={() => { setTruckIdx(i); setSelectedId(null); setActiveCabId(null); }}
+              >
+                🚛 {tr.name}
+                <span className={styles.truckDim}>{tr.width}×{tr.depth} m</span>
+              </button>
+              <button
+                title={orientations[tr.id] ? 'Vue paysage (cliquer pour portrait)' : 'Vue portrait (cliquer pour paysage)'}
+                style={{
+                  flexShrink: 0,
+                  background: orientations[tr.id] ? 'rgba(255,170,0,0.15)' : 'transparent',
+                  border: `1px solid ${orientations[tr.id] ? '#ffaa00' : 'var(--border)'}`,
+                  borderRadius: '4px',
+                  color: orientations[tr.id] ? '#ffaa00' : 'var(--text-dim)',
+                  fontSize: '0.75rem',
+                  padding: '0.35rem 0.45rem',
+                  cursor: 'pointer',
+                }}
+                onClick={() => setOrientations(prev => ({ ...prev, [tr.id]: !prev[tr.id] }))}
+              >
+                🔄
+              </button>
+            </div>
           ))}
         </div>
 
