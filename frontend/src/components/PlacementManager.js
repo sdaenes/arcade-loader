@@ -13,7 +13,11 @@ function formatDate(isoString) {
 
 function formatNow() {
   const d = new Date();
-  return `${d.toLocaleDateString('fr-FR')} ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${day}/${month} ${hours}:${minutes}`;
 }
 
 export default function PlacementManager({ allPlacements, onLoad }) {
