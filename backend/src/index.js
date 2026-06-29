@@ -6,89 +6,27 @@ const { optimizeLoading } = require('./optimizer');
 
 const anthropic = new Anthropic();
 
-function extractWikiParam(wikitext, paramNames) {
-  for (const param of paramNames) {
-    const regex = new RegExp('\\|\\s*' + param + '\\s*=\\s*([^\\n|{}]+)', 'i');
-    const match = wikitext.match(regex);
-    if (match) return match[1].trim();
-  }
-  return null;
-}
+const KNOWN_SOURCES = require('./knownSources.json');
 
-async function searchArcadeOtaku(name) {
-  try {
-    const base = 'https://wiki.arcadeotaku.com/api.php';
-    const searchRes = await fetch(
-      `${base}?action=query&list=search&srsearch=${encodeURIComponent(name)}&format=json&srlimit=2`,
-      { headers: { 'User-Agent': 'ArcadeLoader/1.0' }, signal: AbortSignal.timeout(5000) }
-    );
-    const searchData = await searchRes.json();
-    const hits = searchData?.query?.search || [];
-    if (hits.length === 0) return null;
-
-    const title = hits[0].title;
-    const [wikitextRes, extractRes] = await Promise.all([
-      fetch(
-        `${base}?action=query&prop=revisions&rvprop=content&rvslots=main&titles=${encodeURIComponent(title)}&format=json`,
-        { headers: { 'User-Agent': 'ArcadeLoader/1.0' }, signal: AbortSignal.timeout(5000) }
-      ),
-      fetch(
-        `${base}?action=query&prop=extracts&titles=${encodeURIComponent(title)}&format=json&exlimit=1&exchars=3000`,
-        { headers: { 'User-Agent': 'ArcadeLoader/1.0' }, signal: AbortSignal.timeout(5000) }
-      ),
-    ]);
-    const [wikitextData, extractData] = await Promise.all([wikitextRes.json(), extractRes.json()]);
-
-    const wtPage = Object.values(wikitextData?.query?.pages || {})[0];
-    const wikitext = wtPage?.revisions?.[0]?.slots?.main?.['*'] || '';
-    const dimRaw = extractWikiParam(wikitext, ['dimensions', 'dimension', 'dim', 'size']);
-    const weightRaw = extractWikiParam(wikitext, ['weight', 'masse', 'poids']);
-
-    const exPage = Object.values(extractData?.query?.pages || {})[0];
-    const text = exPage?.extract
-      ? exPage.extract
-          .replace(/<[^>]+>/g, ' ')
-          .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-          .replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
-          .slice(0, 2000)
-      : '';
-
-    if (!text && !dimRaw) return null;
-    return { title, text, dimRaw, weightRaw };
-  } catch (_) { return null; }
-}
-
-async function searchWikipedia(name) {
-  for (const lang of ['fr', 'en']) {
-    try {
-      const base = `https://${lang}.wikipedia.org/w/api.php`;
-      const query = `${name} arcade borne cabinet`;
-      const searchRes = await fetch(
-        `${base}?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&srlimit=2`,
-        { headers: { 'User-Agent': 'ArcadeLoader/1.0' }, signal: AbortSignal.timeout(6000) }
-      );
-      const searchData = await searchRes.json();
-      const hits = searchData?.query?.search || [];
-      if (hits.length === 0) continue;
-
-      const title = hits[0].title;
-      const extractRes = await fetch(
-        `${base}?action=query&prop=extracts&titles=${encodeURIComponent(title)}&format=json&exlimit=1&exchars=6000`,
-        { headers: { 'User-Agent': 'ArcadeLoader/1.0' }, signal: AbortSignal.timeout(6000) }
-      );
-      const extractData = await extractRes.json();
-      const pages = extractData?.query?.pages || {};
-      const page = Object.values(pages)[0];
-      if (!page?.extract || page.extract.length < 100) continue;
-
-      const text = page.extract
+async function fetchKnownSources() {
+  const results = await Promise.allSettled(
+    KNOWN_SOURCES.map(async (s) => {
+      const res = await fetch(s.url, {
+        headers: { 'User-Agent': 'ArcadeLoader/1.0' },
+        signal: AbortSignal.timeout(8000),
+      });
+      const html = await res.text();
+      const text = html
         .replace(/<[^>]+>/g, ' ')
         .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
-        .replace(/\s+/g, ' ').trim();
-      return { lang, title, text };
-    } catch (_) { /* try next language */ }
-  }
-  return null;
+        .replace(/\s+/g, ' ').trim()
+        .slice(0, 15000);
+      return { name: s.name, url: s.url, text };
+    })
+  );
+  return results
+    .filter(r => r.status === 'fulfilled' && r.value.text.length > 100)
+    .map(r => r.value);
 }
 
 const app = express();
