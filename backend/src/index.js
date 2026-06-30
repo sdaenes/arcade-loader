@@ -76,46 +76,39 @@ Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
   return data;
 }
 
-async function askClaudeWebSearch(name, lang) {
+async function askClaudeDeep(name, lang, signal) {
   const isEn = lang === 'en';
   const prompt = isEn
-    ? `Search for the technical manual or official product sheet of the arcade cabinet "${name}". Find the exact physical dimensions and weight (in kg). Extract them from a reliable source such as a manufacturer manual or official spec sheet.
+    ? `You are an arcade cabinet expert with extensive knowledge of manufacturers' technical specifications.
 
-CRITICAL RULE: Read the LABEL next to each value in the source (e.g. "W", "D", "H", "Width", "Depth", "Height", "Length") and map each value to the correct JSON field based on that label — never by the order of the numbers.
+For the arcade cabinet "${name}", return its exact physical dimensions and weight from your training knowledge.
 
-Mappings:
-- width  ← W / Width
-- height ← H / Height
-- depth  ← D / Depth / Length
-
-ABSOLUTE RULE: If you cannot find reliable dimensions from an actual source, return null for all dimension fields. Never invent or estimate dimensions.
+CRITICAL RULES:
+- Return ONLY dimensions you are certain about from known manufacturer specifications.
+- Read the label associated with each dimension (W/Width, D/Depth, H/Height) and assign correctly — never by numeric order.
+- If you are not certain of the exact dimensions, return null for that field. Never estimate or invent values.
 
 Reply ONLY with valid JSON (no markdown):
-{"width": <meters or null>, "height": <meters or null>, "depth": <meters or null>, "weight": <kg or null>, "category": "<cabinet type or null>", "notes": "<source URL and brief description>"}`
-    : `Cherche le manuel technique ou la fiche produit officielle de la borne d'arcade "${name}". Trouve les dimensions physiques exactes et le poids (en kg). Extrais-les depuis une source fiable : manuel fabricant, fiche technique officielle.
+{"width": <meters or null>, "height": <meters or null>, "depth": <meters or null>, "weight": <kg or null>, "category": "<cabinet type or null>", "notes": "<manufacturer and source>"}`
+    : `Tu es un expert en bornes d'arcade avec une connaissance approfondie des spécifications techniques des fabricants.
 
-RÈGLE CRITIQUE : Lis le LABEL associé à chaque valeur dans la source (ex: "L", "l", "H", "Largeur", "Longueur", "Hauteur", "Profondeur", "W", "D", "H") et associe chaque valeur au bon champ JSON selon ce label — jamais selon l'ordre des chiffres.
+Pour la borne d'arcade "${name}", retourne ses dimensions physiques exactes et son poids depuis tes connaissances d'entraînement.
 
-Correspondances :
-- width  ← W / Width / Largeur / l
-- height ← H / Height / Hauteur
-- depth  ← D / Depth / Longueur / Profondeur / L
-
-RÈGLE ABSOLUE : Si tu ne trouves pas de dimensions fiables depuis une vraie source, retourne null pour tous les champs de dimensions. Ne jamais inventer ni estimer.
+RÈGLES ABSOLUES :
+- Retourne UNIQUEMENT des dimensions dont tu es certain d'après les spécifications fabricant connues.
+- Lis le label associé à chaque dimension (L/Largeur, P/Profondeur, H/Hauteur) et assigne correctement — jamais selon l'ordre des chiffres.
+- Si tu n'es pas certain des dimensions exactes, retourne null pour ce champ. Ne jamais estimer ni inventer.
 
 Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
-{"width": <mètres ou null>, "height": <mètres ou null>, "depth": <mètres ou null>, "weight": <kg ou null>, "category": "<type de borne ou null>", "notes": "<URL source et description courte>"}`;
+{"width": <mètres ou null>, "height": <mètres ou null>, "depth": <mètres ou null>, "weight": <kg ou null>, "category": "<type de borne ou null>", "notes": "<fabricant et source>"}`;
 
   const msg = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    tools: [{ type: 'web_search_20260209', name: 'web_search' }],
+    max_tokens: 512,
     messages: [{ role: 'user', content: prompt }],
-  });
+  }, { signal });
 
-  // Prendre le dernier bloc texte (après les appels d'outils)
-  const textBlocks = msg.content.filter(b => b.type === 'text');
-  const raw = textBlocks[textBlocks.length - 1]?.text?.trim() || '';
+  const raw = msg.content.find(b => b.type === 'text')?.text?.trim() || '';
   const jsonMatch = raw.match(/\{[\s\S]*\}/);
   if (!jsonMatch) return null;
 
@@ -153,6 +146,9 @@ app.post('/api/optimize', (req, res) => {
   }
 });
 
+// Garde contre les appels simultanés pour la même borne
+const inProgress = new Set();
+
 app.post('/api/search-cabinet', async (req, res) => {
   const { name, deep = false, categories = [], lang = 'fr' } = req.body;
   if (!name || typeof name !== 'string' || !name.trim()) {
@@ -162,6 +158,16 @@ app.post('/api/search-cabinet', async (req, res) => {
     return res.status(503).json({ error: 'ANTHROPIC_API_KEY non configurée sur le serveur.' });
   }
 
+  const key = `${name.trim().toLowerCase()}|${lang}|${deep}`;
+  if (inProgress.has(key)) {
+    return res.status(429).json({ error: 'Recherche déjà en cours pour cette borne.' });
+  }
+
+  // Abort controller lié à la déconnexion du client
+  const abort = new AbortController();
+  req.on('close', () => abort.abort());
+
+  inProgress.add(key);
   try {
     // Étape 1 : sources connues
     const sources = await fetchKnownSources();
@@ -169,7 +175,7 @@ app.post('/api/search-cabinet', async (req, res) => {
 
     // Étape 2 : uniquement en mode approfondi, si étape 1 n'a rien trouvé
     if (!data && deep) {
-      data = await askClaudeWebSearch(name.trim(), lang);
+      data = await askClaudeDeep(name.trim(), lang, abort.signal);
     }
 
     // Si rien trouvé : retourner null sans halluciner
@@ -204,8 +210,12 @@ app.post('/api/search-cabinet', async (req, res) => {
       notes: typeof data.notes === 'string' ? data.notes : '',
     });
   } catch (err) {
-    console.error('search-cabinet error:', err.message);
-    res.status(500).json({ error: err.message || 'Erreur lors de la recherche.' });
+    if (!res.headersSent) {
+      console.error('search-cabinet error:', err.message);
+      res.status(500).json({ error: err.message || 'Erreur lors de la recherche.' });
+    }
+  } finally {
+    inProgress.delete(key);
   }
 });
 
