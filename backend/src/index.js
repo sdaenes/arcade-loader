@@ -103,8 +103,7 @@ Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
 
   const msg = await anthropic.messages.create({
     model: 'claude-opus-4-8',
-    max_tokens: 2048,
-    thinking: { type: 'adaptive' },
+    max_tokens: 1024,
     tools: [{ type: 'web_search_20260209', name: 'web_search' }],
     messages: [{ role: 'user', content: prompt }],
   });
