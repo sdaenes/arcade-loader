@@ -330,6 +330,23 @@
 
 .deepBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+.stopBtn {
+  background: rgba(255, 60, 60, 0.12);
+  border: 1px solid #ff3c3c;
+  color: #ff3c3c;
+  font-size: 0.78rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+
+.stopBtn:hover {
+  background: rgba(255, 60, 60, 0.25);
+  box-shadow: 0 0 8px rgba(255, 60, 60, 0.4);
+}
+
 .addBtn {
   background: rgba(0, 245, 255, 0.08);
   border: 1px solid var(--neon);

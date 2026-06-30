@@ -58,11 +58,18 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers = {}, 
   const [expanded, setExpanded] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(null);
+  const abortRef = useRef(null);
   const { t, lang } = useLanguage();
+
+  const stopSearch = useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
 
   const doSearch = useCallback(async (deep) => {
     setSearching(deep ? 'deep' : 'quick');
     setSearchError(null);
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
       // Vérifier le cache avant tout appel API (sauf recherche approfondie forcée)
       let data = !deep ? readCache(cab.name, lang) : null;
@@ -72,7 +79,7 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers = {}, 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: cab.name, deep, categories: categories.map(c => c.name), lang }),
-          signal: AbortSignal.timeout(90000),
+          signal: controller.signal,
         });
         data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Erreur serveur');
@@ -100,9 +107,10 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers = {}, 
       });
       setExpanded(true);
     } catch (e) {
-      setSearchError(e.message);
+      if (e.name !== 'AbortError') setSearchError(e.message);
     } finally {
       setSearching(false);
+      abortRef.current = null;
     }
   }, [cab, onUpdate, categories, onAddCategory, t, lang]);
 
@@ -199,6 +207,11 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers = {}, 
                 ? <span className={styles.dots}>{t('dir.analyzing')}<span>.</span><span>.</span><span>.</span></span>
                 : t('dir.search.deep')}
             </button>
+            {!!searching && (
+              <button className={styles.stopBtn} onClick={stopSearch}>
+                {t('dir.search.stop')}
+              </button>
+            )}
             <button className={styles.addBtn}
               onClick={() => onAddToList(cab)}
               disabled={!cab.width || !cab.height || !cab.depth}>
