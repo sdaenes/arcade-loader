@@ -4,6 +4,27 @@ import { useLanguage } from '../i18n/LanguageContext';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
 const COLORS = ['#00f5ff','#ff00aa','#aaff00','#ffaa00','#aa00ff','#ff5500','#00ffaa','#ff0055'];
+const CACHE_KEY = 'al_cabinet_search_cache';
+const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 jours
+
+function getCacheKey(name, lang) { return `${name.trim().toLowerCase()}|${lang}`; }
+
+function readCache(name, lang) {
+  try {
+    const store = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+    const entry = store[getCacheKey(name, lang)];
+    if (entry && Date.now() - entry.ts < CACHE_TTL_MS) return entry.data;
+  } catch {}
+  return null;
+}
+
+function writeCache(name, lang, data) {
+  try {
+    const store = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+    store[getCacheKey(name, lang)] = { ts: Date.now(), data };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(store));
+  } catch {}
+}
 
 function genId() { return 'dir_' + Math.random().toString(36).slice(2, 8); }
 
@@ -43,14 +64,22 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers = {}, 
     setSearching(deep ? 'deep' : 'quick');
     setSearchError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/search-cabinet`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: cab.name, deep, categories: categories.map(c => c.name), lang }),
-        signal: AbortSignal.timeout(90000),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erreur serveur');
+      // Vérifier le cache avant tout appel API (sauf recherche approfondie forcée)
+      let data = !deep ? readCache(cab.name, lang) : null;
+
+      if (!data) {
+        const res = await fetch(`${API_BASE}/api/search-cabinet`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: cab.name, deep, categories: categories.map(c => c.name), lang }),
+          signal: AbortSignal.timeout(90000),
+        });
+        data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erreur serveur');
+
+        // Mettre en cache si des dimensions ont été trouvées
+        if (data.width || data.height || data.depth) writeCache(cab.name, lang, data);
+      }
 
       if (
         data.suggestedNewCategory &&

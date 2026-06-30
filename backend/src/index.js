@@ -33,7 +33,12 @@ async function fetchKnownSources() {
 async function askClaudeFromSources(name, sources) {
   if (sources.length === 0) return null;
 
-  const sourcesText = sources
+  // Ne passer à l'API que les sources qui mentionnent le nom de la borne
+  const nameLower = name.toLowerCase();
+  const relevant = sources.filter(s => s.text.toLowerCase().includes(nameLower));
+  if (relevant.length === 0) return null;
+
+  const sourcesText = relevant
     .map(s => `=== ${s.name} ===\n${s.text}`)
     .join('\n\n');
 
@@ -102,7 +107,7 @@ Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
 {"width": <mètres ou null>, "height": <mètres ou null>, "depth": <mètres ou null>, "weight": <kg ou null>, "category": "<type de borne ou null>", "notes": "<URL source et description courte>"}`;
 
   const msg = await anthropic.messages.create({
-    model: 'claude-opus-4-8',
+    model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     tools: [{ type: 'web_search_20260209', name: 'web_search' }],
     messages: [{ role: 'user', content: prompt }],
