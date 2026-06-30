@@ -39,14 +39,21 @@ async function askClaudeFromSources(name, sources) {
 
   const prompt = `Tu es un expert en bornes d'arcade.
 
-Cherche la borne "${name}" dans les textes suivants et retourne ses dimensions EXACTEMENT telles qu'indiquées dans le texte.
+Cherche la borne "${name}" dans les textes suivants et retourne ses dimensions physiques.
+
+RÈGLE ABSOLUE : Lis le LABEL associé à chaque valeur dans la source (ex: "W", "D", "H", "Width", "Depth", "Height", "Largeur", "Longueur", "Hauteur", "Profondeur") et associe chaque valeur au bon champ JSON selon ce label — jamais selon l'ordre des chiffres.
+
+Correspondances :
+- width  ← W / Width / Largeur
+- height ← H / Height / Hauteur
+- depth  ← D / Depth / Longueur / Profondeur
 
 RÈGLE ABSOLUE : Ne retourne JAMAIS des dimensions inventées ou estimées. Si la borne "${name}" n'est pas explicitement mentionnée dans ces textes avec ses dimensions, retourne found: false.
 
 ${sourcesText}
 
 Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
-{"found": true/false, "width": <largeur en mètres ou null>, "height": <hauteur en mètres ou null>, "depth": <profondeur en mètres ou null>, "weight": <poids en kg ou null>, "category": "<type ou null>", "notes": "<source utilisée ou null>"}`;
+{"found": true/false, "width": <en mètres ou null>, "height": <en mètres ou null>, "depth": <en mètres ou null>, "weight": <poids en kg ou null>, "category": "<type ou null>", "notes": "<source utilisée ou null>"}`;
 
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -67,13 +74,27 @@ Réponds UNIQUEMENT avec un objet JSON valide (sans markdown) :
 async function askClaudeWebSearch(name, lang) {
   const isEn = lang === 'en';
   const prompt = isEn
-    ? `Search for the technical manual or official product sheet of the arcade cabinet "${name}". Find the exact physical dimensions (width, height, depth in meters) and weight (in kg). Extract them from a reliable source such as a manufacturer manual or official spec sheet.
+    ? `Search for the technical manual or official product sheet of the arcade cabinet "${name}". Find the exact physical dimensions and weight (in kg). Extract them from a reliable source such as a manufacturer manual or official spec sheet.
+
+CRITICAL RULE: Read the LABEL next to each value in the source (e.g. "W", "D", "H", "Width", "Depth", "Height", "Length") and map each value to the correct JSON field based on that label — never by the order of the numbers.
+
+Mappings:
+- width  ← W / Width
+- height ← H / Height
+- depth  ← D / Depth / Length
 
 ABSOLUTE RULE: If you cannot find reliable dimensions from an actual source, return null for all dimension fields. Never invent or estimate dimensions.
 
 Reply ONLY with valid JSON (no markdown):
 {"width": <meters or null>, "height": <meters or null>, "depth": <meters or null>, "weight": <kg or null>, "category": "<cabinet type or null>", "notes": "<source URL and brief description>"}`
-    : `Cherche le manuel technique ou la fiche produit officielle de la borne d'arcade "${name}". Trouve les dimensions physiques exactes (largeur, hauteur, profondeur en mètres) et le poids (en kg). Extrais-les depuis une source fiable : manuel fabricant, fiche technique officielle.
+    : `Cherche le manuel technique ou la fiche produit officielle de la borne d'arcade "${name}". Trouve les dimensions physiques exactes et le poids (en kg). Extrais-les depuis une source fiable : manuel fabricant, fiche technique officielle.
+
+RÈGLE CRITIQUE : Lis le LABEL associé à chaque valeur dans la source (ex: "L", "l", "H", "Largeur", "Longueur", "Hauteur", "Profondeur", "W", "D", "H") et associe chaque valeur au bon champ JSON selon ce label — jamais selon l'ordre des chiffres.
+
+Correspondances :
+- width  ← W / Width / Largeur / l
+- height ← H / Height / Hauteur
+- depth  ← D / Depth / Longueur / Profondeur / L
 
 RÈGLE ABSOLUE : Si tu ne trouves pas de dimensions fiables depuis une vraie source, retourne null pour tous les champs de dimensions. Ne jamais inventer ni estimer.
 

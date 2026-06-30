@@ -37,7 +37,7 @@ const TAB_DEFS = [
 const DEFAULT_TAB_ORDER = TAB_DEFS.map(t => t.id);
 
 const DEFAULT_CABINETS = [
-  { id: 'cab1', name: 'Borne Standard', width: 0.65, height: 1.75, depth: 0.75, quantity: 1, canTilt: false, color: '#00f5ff' },
+  { id: 'cab1', name: 'Borne Standard', width: 0.65, height: 1.75, depth: 0.75, quantity: 1, color: '#00f5ff' },
 ];
 
 const DEFAULT_TRUCKS = [
@@ -145,7 +145,6 @@ export default function App() {
       height: cab.height || 1.75,
       depth: cab.depth || 0.75,
       quantity: 1,
-      canTilt: false,
       color: cab.color || COLORS[colorIdx],
     }]);
     setActiveTab('setup');

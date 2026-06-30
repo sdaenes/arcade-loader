@@ -19,12 +19,6 @@ function getRotations(cabinet) {
     { width: w, height: h, depth: d, rotation: 0 },
     { width: d, height: h, depth: w, rotation: 90 },
   ];
-  if (cabinet.canTilt) {
-    rots.push(
-      { width: w, height: d, depth: h, rotation: 'tilt_front' },
-      { width: h, height: d, depth: w, rotation: 'tilt_side' }
-    );
-  }
   return rots;
 }
 

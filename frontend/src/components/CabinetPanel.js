@@ -96,15 +96,6 @@ function CabinetRow({ cabinet, onChange, onDelete, dragHandlers, onAddToDirector
               ))}
             </div>
           </div>
-          <div className={styles.fieldRow}>
-            <label>{t('cabinet.field.tilt')}</label>
-            <input
-              type="checkbox"
-              checked={cabinet.canTilt}
-              onChange={(e) => onChange({ ...cabinet, canTilt: e.target.checked })}
-              style={{ width: 'auto' }}
-            />
-          </div>
           <div className={styles.rowActions}>
             {onAddToDirectory && (
               <button className={styles.dirBtn} onClick={onAddToDirectory}>
@@ -141,13 +132,12 @@ export default function CabinetPanel({ cabinets, onChange, onAddToDirectory }) {
       name: t('cabinet.default.name', { n: cabinets.length + 1 }),
       width: 0.65, height: 1.75, depth: 0.75,
       quantity: 1,
-      canTilt: false,
       color: COLORS[colorIdx],
     }]);
   };
 
   const downloadTemplate = () => {
-    const csv = 'nom,largeur,hauteur,profondeur,quantite,inclinable,couleur\nBorne Standard,0.65,1.75,0.75,10,non,#00f5ff\nBorne Cocktail,0.70,0.80,0.70,5,oui,#ff00aa\n';
+    const csv = 'nom,largeur,hauteur,profondeur,quantite,couleur\nBorne Standard,0.65,1.75,0.75,10,#00f5ff\nBorne Cocktail,0.70,0.80,0.70,5,#ff00aa\n';
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -175,7 +165,7 @@ export default function CabinetPanel({ cabinets, onChange, onAddToDirectory }) {
       const rows = text.trim().split(/\r?\n/).slice(1);
       const imported = rows.map((row, i) => {
         const fields = row.split(/[,;]/).map(f => f.trim().replace(/^"|"$/g, ''));
-        const [nom, largeur, hauteur, profondeur, quantite, inclinable, couleur] = fields;
+        const [nom, largeur, hauteur, profondeur, quantite, couleur] = fields;
         return {
           id: genId(),
           name: nom || t('cabinet.default.name', { n: i + 1 }),
@@ -183,7 +173,6 @@ export default function CabinetPanel({ cabinets, onChange, onAddToDirectory }) {
           height: parseFloat(hauteur) || 1.75,
           depth: parseFloat(profondeur) || 0.75,
           quantity: parseInt(quantite, 10) || 1,
-          canTilt: (inclinable || '').toLowerCase() === 'oui',
           color: parseColor(couleur, i),
         };
       }).filter(c => c.name);
@@ -203,7 +192,6 @@ export default function CabinetPanel({ cabinets, onChange, onAddToDirectory }) {
           height: parseFloat(row['hauteur'] || row['Hauteur'] || row['height']) || 1.75,
           depth: parseFloat(row['profondeur'] || row['Profondeur'] || row['depth']) || 0.75,
           quantity: parseInt(row['quantite'] || row['Quantité'] || row['quantity'], 10) || 1,
-          canTilt: String(row['inclinable'] || row['canTilt'] || '').toLowerCase() === 'oui',
           color: parseColor(row['couleur'] || row['Couleur'] || row['color'], i),
         };
       }).filter(c => c.name);
