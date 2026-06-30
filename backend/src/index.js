@@ -8,6 +8,68 @@ const anthropic = new Anthropic();
 
 const KNOWN_SOURCES = require('./knownSources.json');
 
+// Domains known to block server-side requests
+const BLOCKED_DOMAINS = ['segaretro.org', 'primetimeamusements.com', 'arcade.segakore.fr'];
+// Skip binary/media file types
+const SKIP_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.zip'];
+
+async function searchDuckDuckGo(name) {
+  const query = encodeURIComponent(`${name} arcade cabinet dimensions specifications`);
+  const url = `https://lite.duckduckgo.com/lite/?q=${query}`;
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) return [];
+  const html = await res.text();
+
+  const urls = [];
+  const re = /uddg=([^&"]+)/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    try {
+      const decoded = decodeURIComponent(m[1]);
+      if (!decoded.startsWith('http')) continue;
+      const hostname = new URL(decoded).hostname;
+      if (BLOCKED_DOMAINS.some(d => hostname.includes(d))) continue;
+      if (SKIP_EXTENSIONS.some(ext => decoded.toLowerCase().endsWith(ext))) continue;
+      if (!urls.includes(decoded)) urls.push(decoded);
+      if (urls.length >= 5) break;
+    } catch { /* ignore malformed */ }
+  }
+  return urls;
+}
+
+async function fetchDynamicSources(name) {
+  const urls = await searchDuckDuckGo(name);
+  if (urls.length === 0) return [];
+
+  const results = await Promise.allSettled(
+    urls.map(async (url) => {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const html = await res.text();
+      // Skip if it looks like an anti-bot challenge page
+      if (html.includes('Anubis') || html.includes('Making sure you') || html.includes('__cf_chl')) {
+        throw new Error('blocked');
+      }
+      const text = html
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
+        .replace(/\s+/g, ' ').trim()
+        .slice(0, 10000);
+      return { name: `DDG: ${new URL(url).hostname}`, url, text };
+    })
+  );
+
+  return results
+    .filter(r => r.status === 'fulfilled' && r.value.text.length > 100)
+    .map(r => r.value);
+}
+
 async function fetchKnownSources() {
   const results = await Promise.allSettled(
     KNOWN_SOURCES.map(async (s) => {
@@ -173,7 +235,15 @@ app.post('/api/search-cabinet', async (req, res) => {
     const sources = await fetchKnownSources();
     let data = await askClaudeFromSources(name.trim(), sources);
 
-    // Étape 2 : uniquement en mode approfondi, si étape 1 n'a rien trouvé
+    // Étape 1b : sources dynamiques via DuckDuckGo Lite (si étape 1 n'a rien trouvé)
+    if (!data) {
+      const dynamicSources = await fetchDynamicSources(name.trim()).catch(() => []);
+      if (dynamicSources.length > 0) {
+        data = await askClaudeFromSources(name.trim(), dynamicSources);
+      }
+    }
+
+    // Étape 2 : uniquement en mode approfondi, si étapes 1 et 1b n'ont rien trouvé
     if (!data && deep) {
       data = await askClaudeDeep(name.trim(), lang, abort.signal);
     }
