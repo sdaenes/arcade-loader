@@ -58,6 +58,7 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers = {}, 
   const [expanded, setExpanded] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(null);
+  const [searchNotFound, setSearchNotFound] = useState(false);
   const abortRef = useRef(null);
   const { t, lang } = useLanguage();
 
@@ -68,6 +69,7 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers = {}, 
   const doSearch = useCallback(async (deep) => {
     setSearching(deep ? 'deep' : 'quick');
     setSearchError(null);
+    setSearchNotFound(false);
     const controller = new AbortController();
     abortRef.current = controller;
     try {
@@ -96,6 +98,8 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers = {}, 
         onAddCategory(data.suggestedNewCategory);
       }
 
+      const found = data.width || data.height || data.depth;
+      setSearchNotFound(!found);
       onUpdate({
         ...cab,
         width:    data.width    ?? cab.width,
@@ -192,6 +196,7 @@ function CabinetCard({ cab, onUpdate, onDelete, onAddToList, dragHandlers = {}, 
             />
           </div>
 
+          {searchNotFound && !searchError && <div className={styles.searchNotFound}>{t('dir.search.notfound')}</div>}
           {searchError && <div className={styles.searchError}>⚠ {searchError}</div>}
 
           <div className={styles.cardActions}>

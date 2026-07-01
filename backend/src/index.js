@@ -235,15 +235,16 @@ app.post('/api/search-cabinet', async (req, res) => {
     const sources = await fetchKnownSources();
     let data = await askClaudeFromSources(name.trim(), sources);
 
-    // Étape 1b : sources dynamiques via DuckDuckGo Lite (si étape 1 n'a rien trouvé)
-    if (!data) {
+    // Étape 1b : sources dynamiques via DuckDuckGo Lite (recherche standard uniquement)
+    // En mode approfondi, on saute cette étape pour rester dans le timeout de 30s
+    if (!data && !deep) {
       const dynamicSources = await fetchDynamicSources(name.trim()).catch(() => []);
       if (dynamicSources.length > 0) {
         data = await askClaudeFromSources(name.trim(), dynamicSources);
       }
     }
 
-    // Étape 2 : uniquement en mode approfondi, si étapes 1 et 1b n'ont rien trouvé
+    // Étape 2 : uniquement en mode approfondi, si étape 1 n'a rien trouvé
     if (!data && deep) {
       data = await askClaudeDeep(name.trim(), lang, abort.signal);
     }
