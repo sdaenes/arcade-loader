@@ -28,7 +28,9 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
   const [activeCabId, setActiveCabId] = useState(null); // cabinet type id being placed
   const [selectedId, setSelectedId] = useState(null);   // placed instance id
   const dragRef = useRef(null); // { id, offsetX, offsetZ }
-  const [orientations, setOrientations] = useState({}); // { [truckId]: true } = landscape
+  const [orientations, setOrientations] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('al_manual_orientations') || '{}'); } catch { return {}; }
+  });
 
   const setAllPlacements = onPlacementsChange;
 
@@ -150,6 +152,10 @@ export default function ManualEditor({ cabinets, trucks, allPlacements, onPlacem
   }, [effectiveTruck, placements, selectedId, activeCab, t]);
 
   useEffect(() => { draw(); }, [draw]);
+
+  useEffect(() => {
+    localStorage.setItem('al_manual_orientations', JSON.stringify(orientations));
+  }, [orientations]);
 
   // Resize canvas
   useEffect(() => {
